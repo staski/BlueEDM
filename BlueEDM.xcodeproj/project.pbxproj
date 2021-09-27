@@ -1,0 +1,585 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5C9EBE0227025B0900305F64 /* BlueEDMApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9EBE0127025B0900305F64 /* BlueEDMApp.swift */; };
+		5C9EBE0427025B0900305F64 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9EBE0327025B0900305F64 /* ContentView.swift */; };
+		5C9EBE0627025B0A00305F64 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5C9EBE0527025B0A00305F64 /* Assets.xcassets */; };
+		5C9EBE0927025B0A00305F64 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5C9EBE0827025B0A00305F64 /* Preview Assets.xcassets */; };
+		5C9EBE1427025B0A00305F64 /* BlueEDMTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9EBE1327025B0A00305F64 /* BlueEDMTests.swift */; };
+		5C9EBE1F27025B0A00305F64 /* BlueEDMUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9EBE1E27025B0A00305F64 /* BlueEDMUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5C9EBE1027025B0A00305F64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C9EBDF627025B0800305F64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C9EBDFD27025B0900305F64;
+			remoteInfo = BlueEDM;
+		};
+		5C9EBE1B27025B0A00305F64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C9EBDF627025B0800305F64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C9EBDFD27025B0900305F64;
+			remoteInfo = BlueEDM;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		5C9EBDFE27025B0900305F64 /* BlueEDM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlueEDM.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C9EBE0127025B0900305F64 /* BlueEDMApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueEDMApp.swift; sourceTree = "<group>"; };
+		5C9EBE0327025B0900305F64 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5C9EBE0527025B0A00305F64 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5C9EBE0827025B0A00305F64 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		5C9EBE0A27025B0A00305F64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5C9EBE0F27025B0A00305F64 /* BlueEDMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlueEDMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C9EBE1327025B0A00305F64 /* BlueEDMTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueEDMTests.swift; sourceTree = "<group>"; };
+		5C9EBE1527025B0A00305F64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5C9EBE1A27025B0A00305F64 /* BlueEDMUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlueEDMUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C9EBE1E27025B0A00305F64 /* BlueEDMUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueEDMUITests.swift; sourceTree = "<group>"; };
+		5C9EBE2027025B0A00305F64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5C9EBDFB27025B0900305F64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C9EBE0C27025B0A00305F64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C9EBE1727025B0A00305F64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5C9EBDF527025B0800305F64 = {
+			isa = PBXGroup;
+			children = (
+				5C9EBE0027025B0900305F64 /* BlueEDM */,
+				5C9EBE1227025B0A00305F64 /* BlueEDMTests */,
+				5C9EBE1D27025B0A00305F64 /* BlueEDMUITests */,
+				5C9EBDFF27025B0900305F64 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5C9EBDFF27025B0900305F64 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5C9EBDFE27025B0900305F64 /* BlueEDM.app */,
+				5C9EBE0F27025B0A00305F64 /* BlueEDMTests.xctest */,
+				5C9EBE1A27025B0A00305F64 /* BlueEDMUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5C9EBE0027025B0900305F64 /* BlueEDM */ = {
+			isa = PBXGroup;
+			children = (
+				5C9EBE0127025B0900305F64 /* BlueEDMApp.swift */,
+				5C9EBE0327025B0900305F64 /* ContentView.swift */,
+				5C9EBE0527025B0A00305F64 /* Assets.xcassets */,
+				5C9EBE0A27025B0A00305F64 /* Info.plist */,
+				5C9EBE0727025B0A00305F64 /* Preview Content */,
+			);
+			path = BlueEDM;
+			sourceTree = "<group>";
+		};
+		5C9EBE0727025B0A00305F64 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				5C9EBE0827025B0A00305F64 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		5C9EBE1227025B0A00305F64 /* BlueEDMTests */ = {
+			isa = PBXGroup;
+			children = (
+				5C9EBE1327025B0A00305F64 /* BlueEDMTests.swift */,
+				5C9EBE1527025B0A00305F64 /* Info.plist */,
+			);
+			path = BlueEDMTests;
+			sourceTree = "<group>";
+		};
+		5C9EBE1D27025B0A00305F64 /* BlueEDMUITests */ = {
+			isa = PBXGroup;
+			children = (
+				5C9EBE1E27025B0A00305F64 /* BlueEDMUITests.swift */,
+				5C9EBE2027025B0A00305F64 /* Info.plist */,
+			);
+			path = BlueEDMUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5C9EBDFD27025B0900305F64 /* BlueEDM */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5C9EBE2327025B0A00305F64 /* Build configuration list for PBXNativeTarget "BlueEDM" */;
+			buildPhases = (
+				5C9EBDFA27025B0900305F64 /* Sources */,
+				5C9EBDFB27025B0900305F64 /* Frameworks */,
+				5C9EBDFC27025B0900305F64 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BlueEDM;
+			productName = BlueEDM;
+			productReference = 5C9EBDFE27025B0900305F64 /* BlueEDM.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5C9EBE0E27025B0A00305F64 /* BlueEDMTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5C9EBE2627025B0A00305F64 /* Build configuration list for PBXNativeTarget "BlueEDMTests" */;
+			buildPhases = (
+				5C9EBE0B27025B0A00305F64 /* Sources */,
+				5C9EBE0C27025B0A00305F64 /* Frameworks */,
+				5C9EBE0D27025B0A00305F64 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5C9EBE1127025B0A00305F64 /* PBXTargetDependency */,
+			);
+			name = BlueEDMTests;
+			productName = BlueEDMTests;
+			productReference = 5C9EBE0F27025B0A00305F64 /* BlueEDMTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5C9EBE1927025B0A00305F64 /* BlueEDMUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5C9EBE2927025B0A00305F64 /* Build configuration list for PBXNativeTarget "BlueEDMUITests" */;
+			buildPhases = (
+				5C9EBE1627025B0A00305F64 /* Sources */,
+				5C9EBE1727025B0A00305F64 /* Frameworks */,
+				5C9EBE1827025B0A00305F64 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5C9EBE1C27025B0A00305F64 /* PBXTargetDependency */,
+			);
+			name = BlueEDMUITests;
+			productName = BlueEDMUITests;
+			productReference = 5C9EBE1A27025B0A00305F64 /* BlueEDMUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5C9EBDF627025B0800305F64 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1250;
+				LastUpgradeCheck = 1250;
+				TargetAttributes = {
+					5C9EBDFD27025B0900305F64 = {
+						CreatedOnToolsVersion = 12.5.1;
+					};
+					5C9EBE0E27025B0A00305F64 = {
+						CreatedOnToolsVersion = 12.5.1;
+						TestTargetID = 5C9EBDFD27025B0900305F64;
+					};
+					5C9EBE1927025B0A00305F64 = {
+						CreatedOnToolsVersion = 12.5.1;
+						TestTargetID = 5C9EBDFD27025B0900305F64;
+					};
+				};
+			};
+			buildConfigurationList = 5C9EBDF927025B0800305F64 /* Build configuration list for PBXProject "BlueEDM" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5C9EBDF527025B0800305F64;
+			productRefGroup = 5C9EBDFF27025B0900305F64 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5C9EBDFD27025B0900305F64 /* BlueEDM */,
+				5C9EBE0E27025B0A00305F64 /* BlueEDMTests */,
+				5C9EBE1927025B0A00305F64 /* BlueEDMUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5C9EBDFC27025B0900305F64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C9EBE0927025B0A00305F64 /* Preview Assets.xcassets in Resources */,
+				5C9EBE0627025B0A00305F64 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C9EBE0D27025B0A00305F64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C9EBE1827025B0A00305F64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5C9EBDFA27025B0900305F64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C9EBE0427025B0900305F64 /* ContentView.swift in Sources */,
+				5C9EBE0227025B0900305F64 /* BlueEDMApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C9EBE0B27025B0A00305F64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C9EBE1427025B0A00305F64 /* BlueEDMTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5C9EBE1627025B0A00305F64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C9EBE1F27025B0A00305F64 /* BlueEDMUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5C9EBE1127025B0A00305F64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5C9EBDFD27025B0900305F64 /* BlueEDM */;
+			targetProxy = 5C9EBE1027025B0A00305F64 /* PBXContainerItemProxy */;
+		};
+		5C9EBE1C27025B0A00305F64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5C9EBDFD27025B0900305F64 /* BlueEDM */;
+			targetProxy = 5C9EBE1B27025B0A00305F64 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5C9EBE2127025B0A00305F64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		5C9EBE2227025B0A00305F64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5C9EBE2427025B0A00305F64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"BlueEDM/Preview Content\"";
+				DEVELOPMENT_TEAM = DFS67V5723;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = BlueEDM/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.venus-flytrap.BlueEDM";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5C9EBE2527025B0A00305F64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"BlueEDM/Preview Content\"";
+				DEVELOPMENT_TEAM = DFS67V5723;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = BlueEDM/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.venus-flytrap.BlueEDM";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5C9EBE2727025B0A00305F64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = DFS67V5723;
+				INFOPLIST_FILE = BlueEDMTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.venus-flytrap.BlueEDMTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BlueEDM.app/BlueEDM";
+			};
+			name = Debug;
+		};
+		5C9EBE2827025B0A00305F64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = DFS67V5723;
+				INFOPLIST_FILE = BlueEDMTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.venus-flytrap.BlueEDMTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BlueEDM.app/BlueEDM";
+			};
+			name = Release;
+		};
+		5C9EBE2A27025B0A00305F64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = DFS67V5723;
+				INFOPLIST_FILE = BlueEDMUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.venus-flytrap.BlueEDMUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BlueEDM;
+			};
+			name = Debug;
+		};
+		5C9EBE2B27025B0A00305F64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = DFS67V5723;
+				INFOPLIST_FILE = BlueEDMUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.venus-flytrap.BlueEDMUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BlueEDM;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5C9EBDF927025B0800305F64 /* Build configuration list for PBXProject "BlueEDM" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C9EBE2127025B0A00305F64 /* Debug */,
+				5C9EBE2227025B0A00305F64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5C9EBE2327025B0A00305F64 /* Build configuration list for PBXNativeTarget "BlueEDM" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C9EBE2427025B0A00305F64 /* Debug */,
+				5C9EBE2527025B0A00305F64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5C9EBE2627025B0A00305F64 /* Build configuration list for PBXNativeTarget "BlueEDMTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C9EBE2727025B0A00305F64 /* Debug */,
+				5C9EBE2827025B0A00305F64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5C9EBE2927025B0A00305F64 /* Build configuration list for PBXNativeTarget "BlueEDMUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C9EBE2A27025B0A00305F64 /* Debug */,
+				5C9EBE2B27025B0A00305F64 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5C9EBDF627025B0800305F64 /* Project object */;
+}
