@@ -9,9 +9,19 @@ import SwiftUI
 
 @main
 struct BlueEDMApp: App {
+    @StateObject var edm = EDMBluetoothManager()
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().environmentObject(edm)
+        }.onChange(of: scenePhase) { phase in
+            if phase == .active {
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
+            if phase == .background {
+                
+            }
         }
     }
 }
