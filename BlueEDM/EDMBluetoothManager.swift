@@ -28,11 +28,15 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     @Published var deviceConnected = false
     @Published var isCapturing = false
     @Published var shareItem = false
+    @Published var headerDataText = ""
     
-    private var receivedSize = 0
     @Published var receivedData : Data = Data()
     
+    // the saved files 1:1
     var edmFiles = [EdmFile]()
+    
+    // the parsed header file
+    var edmFileParser : EdmFileParser = EdmFileParser()
     
     override init() {
         super.init()
@@ -41,8 +45,8 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     }
     
     func startCapturing () {
-        receivedSize = 0
         receivedData = Data()
+        edmFileParser = EdmFileParser()
         isCapturing = true
     }
     
@@ -135,7 +139,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                 print("register for transfer service value")
                 peripheral.setNotifyValue(true, for: pcharacteristic)
                 peripheral.readValue(for: pcharacteristic)
-            }
+            }            
         }
         print ("\n")
     }
@@ -146,16 +150,41 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
         
-        var tmpstring = "capturing"
-        
-        //print (characteristic)
-        if (isCapturing){
-            receivedData.append(data)
-        } else {
-            tmpstring = "not " + tmpstring
+        guard isCapturing == true else {
+            return
         }
         
-        receivedSize += data.count  
+        receivedData.append(data)
+        edmFileParser.data.append(data)
+
+        if edmFileParser.edmFileData.edmFileHeader == nil {
+            if edmFileParser.available > 2000 {
+
+                guard let header = edmFileParser.parseFileHeaders() else {
+                    headerDataText.append("received invalid data")
+                    edmFileParser.invalid = true
+                    return
+                }
+                edmFileParser.edmFileData.edmFileHeader = header
+                headerDataText.append(header.stringValue())
+            }
+        }
+        
+        guard let header = edmFileParser.edmFileData.edmFileHeader else {
+            return
+        }
+                
+        while edmFileParser.complete == false && edmFileParser.available >= header.flightInfos[edmFileParser.nextFlightIndex!].sizeBytes {
+            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip() else {
+                return
+            }
+            
+            headerDataText.append(flightheader.stringValue())
+        }
+        
+        if edmFileParser.complete && edmFileParser.available > 0 {
+            print("Data complete: " + String(edmFileParser.available) + " Bytes excess\n")
+        }
     }
 }
 

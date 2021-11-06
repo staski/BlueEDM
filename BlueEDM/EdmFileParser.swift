@@ -6,14 +6,16 @@
 //
 
 import Foundation
-import Foundation
-import CoreImage
 
-struct EdmDataStream {
-    var data : Data
+struct EdmFileParser {
+    var data : Data = Data()
+    var edmFileData : EdmFileData = EdmFileData()
     var nextread  = 0
     var eor = false // signals end of record
-    var checksum = 0
+    var headerChecksum : UInt8 = 0
+    var nextFlightIndex : Int?
+    var complete = false
+    var invalid = false
     
     var available : Int {
         return data.count - nextread
@@ -22,7 +24,7 @@ struct EdmDataStream {
     var values : [String] = []
     var item : String?
 
-    init(_ data1: Data){
+    mutating func setData (_ data1: Data){
         data = data1
     }
     
@@ -32,13 +34,20 @@ struct EdmDataStream {
     
     mutating func readChar() -> Character {
         let c = self[nextread]
+        
         //print ("read char: " + String(c) + " (" + String(Int(c.asciiValue ?? 0)) + ")")
-        checksum ^= Int(c.asciiValue ?? 0)
+        headerChecksum ^= UInt8(c.asciiValue ?? 0)
         nextread += 1
         return c
     }
     
-    mutating func nextItem () -> String? {
+    mutating func readUShort() -> UInt16 {
+        let us = UInt16(data[nextread]) << 8 + UInt16(data[nextread+1])
+        nextread += 2
+        return us
+    }
+    
+    mutating func nextHeaderItem () -> String? {
         var c : Character
         var newItem : String?
         var skip = false
@@ -50,6 +59,8 @@ struct EdmDataStream {
                 return newItem
             }
             if (c == "*"){
+                // checksum without the "trailing" *
+                headerChecksum ^= UInt8(c.asciiValue ?? 0)
                 eor = true
                 print("new Item: " + (newItem ?? "nil"))
                 return newItem
@@ -80,6 +91,7 @@ struct EdmDataStream {
         var hl : EdmHeaderLine = EdmHeaderLine()
         var linetypechar : Character = Character("I")
         eor = false
+        headerChecksum = 0
         
         if available > 1 {
             if self[0] != "$" {
@@ -90,7 +102,7 @@ struct EdmDataStream {
         }
         
         while available > 0 && eor == false {
-            item = nextItem()
+            item = nextHeaderItem()
             if item != nil {
                 hl.contents.append(item!)
             }
@@ -100,10 +112,10 @@ struct EdmDataStream {
             // read checksum
             var s : String = String(self[nextread])
             s.append(self[nextread + 1])
-            let cs = Int(s, radix: 16)
+            let cs = UInt8(s, radix: 16)
         
-            if cs != checksum {
-                print ("checksum error: " + String(cs ?? 0) + " != " + String(checksum) + " (" + s + ")")
+            if cs != headerChecksum {
+                print ("checksum error: " + String(cs ?? 0) + " != " + String(headerChecksum) + " (" + s + ")")
             }
             nextread += 2
             
@@ -143,34 +155,105 @@ struct EdmDataStream {
         return hl
     }
     
+    mutating func parse () {
+        // var fileheader : EdmFileHeader?
+        if edmFileData.edmFileHeader == nil {
+            
+            guard available > 2000 else {
+                return
+            }
+            
+            guard let fileheader = parseFileHeaders() else {
+                return
+            }
+            
+            edmFileData.edmFileHeader = fileheader
+        }
+        
+        while available > edmFileData.edmFileHeader!.flightInfos[nextFlightIndex!].sizeBytes {
+            _ = parseFlightHeaderAndSkip()
+        }
+    }
     
-    mutating func parseHeaders () -> EdmFileData {
-        var edmfile =  EdmFileData()
+    mutating func parseFlightHeaderAndSkip () -> EdmFlightHeader? {
+        
+        guard let flightheader = parseFlightHeader() else {
+            return nil
+        }
+        
+        guard nextFlightIndex! < edmFileData.edmFileHeader!.flightInfos.count else {
+            print ("invalid flight indes" + String(nextFlightIndex!))
+            return nil
+        }
+        
+        let size = edmFileData.edmFileHeader!.flightInfos[nextFlightIndex!].sizeBytes - 15
+        nextread += size
+        nextFlightIndex! += 1
+        if nextFlightIndex == edmFileData.edmFileHeader!.flightInfos.count {
+            complete = true
+        }
+        
+        return flightheader
+    }
+    
+    mutating func parseFlightHeader () -> EdmFlightHeader? {
+        
+        guard available > 15 else {
+            return nil
+        }
+        
+        var a : [UInt16]  = []
+        
+        for _ in 0...6 {
+            a.append(readUShort())
+        }
+        
+        let cs = Int8(self[nextread].asciiValue ?? 0)
+        nextread += 1
+        
+        let fh = EdmFlightHeader(values: a, checksum: cs)
+        var efd = EdmFlightDatum()
+        efd.flightHeader = fh
+        edmFileData.edmFlightData.append(efd)
+        
+        return fh
+    }
+    
+    mutating func parseFileHeaders () -> EdmFileHeader? {
+        var edmFileHeader =  EdmFileHeader()
         var hl = EdmHeaderLine()
 
         while hl.lineType != .lineTypeLastLine {
             hl = parseHeaderLine()
             switch hl.lineType {
                 case .lineTypeRegistration:
-                    edmfile.registration = edmfile.initRegistration(hl.contents) ?? ""
+                    edmFileHeader.registration = edmFileHeader.initRegistration(hl.contents) ?? ""
                 case .lineTypeAlert:
-                    edmfile.alarms = EdmAlarmLimits(hl.contents)
+                    edmFileHeader.alarms = EdmAlarmLimits(hl.contents)
                 case .lineTypeFuelFlow:
-                    edmfile.ff = EdmFuelFlow(hl.contents)
+                    edmFileHeader.ff = EdmFuelFlow(hl.contents)
                 case .lineTypeTimestamp:
-                    edmfile.date = edmfile.initDate(hl.contents)
+                    edmFileHeader.date = edmFileHeader.initDate(hl.contents)
                 case .lineTypeConfig:
-                    edmfile.config = EdmConfig(hl.contents)
+                    edmFileHeader.config = EdmConfig(hl.contents)
                 case .lineTypeFlight:
-                    edmfile.flightInfos.append(EdmFlightData(hl.contents))
+                    edmFileHeader.flightInfos.append(EdmFlightInfo(hl.contents))
                 case .lineTypeLastLine:
                     break
-                default:
-                    hl.lineType = .lineTypeLastLine
-                    break
+            case .lineTypeInvalid:
+                    return nil
             }
         }
-        return edmfile
+        
+        edmFileHeader.headerLen = nextread
+        edmFileHeader.totalLen = edmFileHeader.headerLen
+        
+        for flight in edmFileHeader.flightInfos {
+            edmFileHeader.totalLen += flight.sizeBytes
+        }
+
+        nextFlightIndex = 0
+        return edmFileHeader
     }
 }
 
@@ -201,3 +284,15 @@ struct EdmHeaderLine {
     }
     
 }
+
+extension Date
+{
+    func toString( dateFormat format  : String ) -> String
+    {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = format
+        return dateFormatter.string(from: self)
+    }
+
+}
+

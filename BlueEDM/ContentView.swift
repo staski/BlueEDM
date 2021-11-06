@@ -23,6 +23,21 @@ struct ContentView: View {
         TabView {
             MainView().tabItem { Label("Home", systemImage: "house.fill") }
             SettingsView().tabItem { Label("Settings", systemImage: "gearshape.fill") }
+            FileView().tabItem { Label("Files", systemImage: "doc.fill")}
+        }
+    }
+}
+
+struct FileView : View {
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .center)
+            {
+                //HeaderView().frame(height: 30)
+                Spacer()
+                EdmFileList()
+                Spacer()
+            }
         }
     }
 }
@@ -36,7 +51,13 @@ struct MainView : View {
             {
                 //HeaderView().frame(height: 30)
                 Spacer()
-                EdmFileList()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        Text(edm.headerDataText).id(10)
+                    }.onChange(of: edm.headerDataText) { target in
+                        proxy.scrollTo(10, anchor: .bottom)
+                    }
+                }
                 Spacer()
                 RecordingView().disabled(!edm.deviceConnected)
                 InfoView()
@@ -66,6 +87,16 @@ struct InfoView : View {
         return edm.deviceConnected ? Color.green : Color.orange
     }
     
+    var value : Double {
+        if let h = edm.edmFileParser.edmFileData.edmFileHeader {
+            let d = Double(edm.receivedData.count) / Double(h.totalLen)
+            return d < 1.0 ? d : 1.0
+        }
+        else {
+            return 0.0
+        }
+    }
+    
     var body : some View {
         ZStack(alignment: .center, content: {
             HStack(alignment: .center, spacing: 10, content: {
@@ -75,39 +106,12 @@ struct InfoView : View {
             VStack (alignment: .center, spacing: 10, content: {
                 Text(dtext)
                 Text(rtext)
+                ProgressView(value: value)
             })
         })
     }
 }
 
-struct Info1View : View {
-    @EnvironmentObject var edm : EDMBluetoothManager
-
-    var text : String {
-        var mytext : String = ""
-        if (edm.deviceConnected){
-            mytext = String(format: "%d bytes received", edm.receivedData.count)
-            return mytext
-        }
-        else{
-            return "Not connected"
-        }
-    }
-    var body : some View {
-            Text(text)
-    }
-}
-
-extension Date
-{
-    func toString( dateFormat format  : String ) -> String
-    {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = format
-        return dateFormatter.string(from: self)
-    }
-
-}
 struct RecordingView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
 
@@ -128,17 +132,24 @@ struct RecordingView : View {
                             self.edm.startCapturing()
                         }
                         else {
+                            self.edm.stopCapturing()
                             let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                            let edmFilename = documentPath.appendingPathComponent("\(Date().toString(dateFormat: "dd-MM-YY_'at'_HH:mm:ss")).jpi")
-                            print (edmFilename)
-                            edm.stopCapturing()
-                            if edm.receivedData.count != 0 {
+                            if let fh = edm.edmFileParser.edmFileData.edmFileHeader {
+                                let fileName = String(fh.registration) + "_" + fh.date!.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
+                                let edmFileName = documentPath.appendingPathComponent(fileName)
                                 do {
-                                    try edm.receivedData.write(to: edmFilename)
+                                    try edm.receivedData.write(to: edmFileName)
+                                    print ("written: " + fileName)
                                 } catch {
                                     print ("error while trying to write \(error)")
                                 }
+                            } else {
+                                if edm.receivedData.count != 0 {
+                                    edm.headerDataText.append("invalid data - not saved\n")
+                                    print ("invalid data - not saved")
+                                }
                             }
+
                             edm.fetchEdmFiles()
                         }
                     }) {
@@ -175,6 +186,8 @@ struct ViewDidLoadModifier: ViewModifier {
     }
 }
 
+var pipe = Pipe()
+
 struct SettingsView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
     @State private var myText: String = ""
@@ -203,7 +216,6 @@ struct SettingsView : View {
         }
     }
     
-    var pipe = Pipe()
     
     func redirectStdout(){
         dup2(pipe.fileHandleForWriting.fileDescriptor,
