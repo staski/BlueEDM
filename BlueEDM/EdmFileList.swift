@@ -7,7 +7,9 @@
 
 import SwiftUI
 
-struct EdmFile {
+struct EdmFile : Identifiable {
+    var id: Date { createdAt }
+    
     let fileURL: URL
     let createdAt: Date
 }

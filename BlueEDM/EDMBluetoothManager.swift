@@ -15,16 +15,29 @@ struct DataTransferService {
     static let characteristicCmdValueUUID = CBUUID(string: "F18D67AE-CADC-11E3-AACB-1A514932AC01")
 }
 
+extension Data {
+    func readUInt() -> UInt? {
+        guard self.count > 3 else {
+            return nil
+        }
+        let a : UInt = UInt(self[0]) << 24 +  UInt(self[1]) << 16 + UInt(self[2]) << 8 + UInt(self[3])
+        return a
+    }
+}
+
 class EDMBluetoothManager : NSObject, ObservableObject{
     
+    static let manufacturerLinTech = 0x4401
+    static let deviceLinTechBTLE = 0x02ff
+
     let willChange = PassthroughSubject<Void, Never>()
     
-    private let centralManager = CBCentralManager()
-    var peripheral : CBPeripheral!
+    var centralManager = CBCentralManager()
+    var peripheral : CBPeripheral?
     
     @Published var deviceFound = false
     @Published var deviceName: String = ""
-    @Published var deviceRSSI = 0
+    @Published var deviceRSSI = ""
     @Published var deviceConnected = false
     @Published var isCapturing = false
     @Published var shareItem = false
@@ -37,6 +50,10 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     
     // the parsed header file
     var edmFileParser : EdmFileParser = EdmFileParser()
+    
+    private var cmdMode = false
+    private var cmdCharacteristic : CBCharacteristic?
+    private var valCharacteristic : CBCharacteristic?
     
     override init() {
         super.init()
@@ -59,10 +76,11 @@ class EDMBluetoothManager : NSObject, ObservableObject{
         
         let fileManager = FileManager.default
         let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let directoryContents = try! fileManager.contentsOfDirectory(at: documentDirectory, includingPropertiesForKeys: nil)
+        let directoryContents = try! fileManager.contentsOfDirectory(at: documentDirectory, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
         
         for f in directoryContents {
-            let edmFile = EdmFile(fileURL: f, createdAt: getCreationDate(for: f))
+            let myid = getCreationDate(for: f)
+            let edmFile = EdmFile(fileURL: f, createdAt: myid)
             edmFiles.append(edmFile)
         }
         edmFiles.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
@@ -70,38 +88,58 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     }
 }
 
-
-
 extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == CBManagerState.poweredOn {
-            print("BLE powered on")
+            print("Bluetooth powered on")
             central.scanForPeripherals(withServices: nil, options: nil)
         }
         else {
-            print("Something wrong with BLE")
+            print("Bluetooth disconnected")
+            if central.isScanning {
+                print("stop scanning")
+                central.stopScan()
+            }
         }
         
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        
+        guard let a = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data else {
+            print("no manufacturer data available, ignore device: " + (peripheral.name ?? "nil") + "\n")
+            return
+        }
+
+        guard let num = a.readUInt() else {
+            print("found non LinTech BTLE device: " + (peripheral.name ?? "") + "with manufacture Data:  " + a.description + "\n")
+            print(advertisementData)
+            return
+        }
+
+        let device = num & 0xFFFF
+        let manufacturer = (num & 0xFFFF0000) >> 16
+
+        if manufacturer != EDMBluetoothManager.manufacturerLinTech || device != EDMBluetoothManager.deviceLinTechBTLE {
+            print("found non LinTech BTLE device:  " + (peripheral.name ?? "") + ", " + a.description)
+            print(String(format: "num: 0x%04X manufacturer: 0x%04X, device: 0x%04X\n", num, manufacturer, device))
+            return
+        }
+        
         self.peripheral = peripheral
 
         if let pname = peripheral.name {
-            if pname == "DEEBU BLE" {
-                self.centralManager.stopScan()
-                
-                print ("found BLE RS232 Device")
-                self.deviceFound = true
-                self.peripheral = peripheral
-                self.peripheral.delegate = self
-                self.deviceName = pname
-                self.deviceRSSI = Int(truncating: RSSI)
-                willChange.send()
+            self.centralManager.stopScan()
+            
+            print ("found BTLE RS232 Device " + (peripheral.name ?? "--"))
+            self.deviceFound = true
+            self.peripheral!.delegate = self
+            self.deviceName = pname
+            self.deviceRSSI = String(Int(truncating: RSSI))
+            willChange.send()
 
-                self.centralManager.connect(peripheral, options: nil)
-            }
+            self.centralManager.connect(peripheral, options: nil)
         }
     }
     
@@ -109,17 +147,16 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         
         deviceConnected = true
         peripheral.discoverServices(nil)
-        print("")
     }
-    
+        
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         
         self.stopCapturing()
+        print (deviceName + " disconnected ")
+        deviceFound = false
         deviceConnected = false
         deviceName = "No Device"
-        deviceRSSI = 0
-        print ("Device disconnected, start scanning ...")
-        central.scanForPeripherals(withServices: nil, options: nil)
+        deviceRSSI = ""
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -129,22 +166,111 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                 peripheral.discoverCharacteristics([DataTransferService.characteristicValueUUID, DataTransferService.characteristicCmdValueUUID], for: pservice)
             }
         }
-        print("")
    }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         
+        print("characteristics for service--" + service.description + "--\n")
         for pcharacteristic in service.characteristics! {
             if pcharacteristic.uuid == DataTransferService.characteristicValueUUID {
                 print("register for transfer service value")
                 peripheral.setNotifyValue(true, for: pcharacteristic)
-                peripheral.readValue(for: pcharacteristic)
-            }            
+                valCharacteristic = pcharacteristic
+            }
+
+            if pcharacteristic.uuid == DataTransferService.characteristicCmdValueUUID {
+                print("register for transfer service cmd value")
+                peripheral.setNotifyValue(true, for: pcharacteristic)
+                cmdCharacteristic = pcharacteristic
+                softReset()
+            }
+            print(pcharacteristic.uuid.uuidString)
+            printProperties(pcharacteristic.properties)
+            print(pcharacteristic.description)
         }
-        print ("\n")
     }
     
+    func softReset() {
+        sendCmd("UART=5,1,0")
+        sendCmd("INDI=0")
+        sendCmd("TXPO=4")
+        sendCmd("COMA=0")
+    }
+    
+    func sendCmd (_ cmd: String, characteristic : CBCharacteristic? = nil)  {
+        let data = Data(cmd.utf8)
+        
+        guard let c = cmdCharacteristic else {
+            print("no characteristic for commands available\n")
+            return
+        }
+        
+        guard let peripheral = self.peripheral else {
+            print ("no peripheral\n")
+            return
+        }
+
+        peripheral.writeValue(data, for: c, type: .withResponse )
+    }
+
+    func sendCmdVal (_ cmd: String, characteristic : CBCharacteristic? = nil)  {
+        let data = Data(cmd.utf8)
+        
+        guard let c = valCharacteristic else {
+            print("no characteristic for commands available\n")
+            return
+        }
+
+        guard let peripheral = self.peripheral else {
+            print ("no peripheral\n")
+            return
+        }
+
+        peripheral.writeValue(data, for: c, type: .withResponse )
+    }
+
+    func readCmdReturn (_ data : Data){
+        print(data.description)
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        
+        if let error = error {
+            print("Write error " + error.localizedDescription + "occured for characteristic" + characteristic.uuid.uuidString)
+        }
+        
+        if characteristic == cmdCharacteristic || characteristic == valCharacteristic {
+            peripheral.setNotifyValue(true, for: characteristic)
+
+            guard let d = characteristic.value else {
+                print(characteristic)
+                printProperties(characteristic.properties)
+                print ("return from write ok without data")
+                return
+            }
+            
+            readCmdReturn(d)
+
+            return
+        }
+    }
+
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        
+        if let error = error {
+            print("Read error " + error.localizedDescription + "occured for characteristic" + characteristic.uuid.uuidString)
+        }
+        
+        //print("received update for characteristic " + characteristic.description + ", value: " + (characteristic.value?.description ?? ""))
+        if characteristic == cmdCharacteristic {
+            guard let d = characteristic.value else {
+                print ("no return data for cmd received")
+                return
+            }
+            
+            readCmdReturn(d)
+            return
+        }
         
         guard let data = characteristic.value else {
             return
@@ -161,7 +287,9 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             if edmFileParser.available > 2000 {
 
                 guard let header = edmFileParser.parseFileHeaders() else {
-                    headerDataText.append("received invalid data")
+                    if !edmFileParser.invalid {
+                        headerDataText.append("received invalid data\n")
+                    }
                     edmFileParser.invalid = true
                     return
                 }

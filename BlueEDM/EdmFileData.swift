@@ -329,7 +329,6 @@ struct EdmFlightInfo {
     }
 }
 
-
 struct EdmFlightHeader {
     var id : UInt16 = 0
     var flags : UInt32 = 0
@@ -343,7 +342,7 @@ struct EdmFlightHeader {
         
         let d : Date = date ?? Date()
         str.append("flight id: " + String(id))
-        str.append(", rate: " + String(interval_secs) + " secs")
+        //str.append(", rate: " + String(interval_secs) + " secs")
         str.append(", " + d.toString(dateFormat: "dd.MM.YY HH:mm\n"))
         
         return str

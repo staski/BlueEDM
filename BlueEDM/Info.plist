@@ -13,9 +13,9 @@
 	<key>LSApplicationCategoryType</key>
 	<string></string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Allow BlueEDM to receive data from peripheral</string>
+	<string>BlueEDM uses Bluetooth to connect to your RS232 to Bluetooth adapter and receive engine monitoring data</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Allow BlueEDM to use Bluetooth</string>
+	<string>BlueEDM uses Bluetooth to connect to your RS232 to Bluetooth adapter and receive engine monitoring data</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
