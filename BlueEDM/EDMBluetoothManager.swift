@@ -194,7 +194,8 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         sendCmd("UART=5,1,0")
         sendCmd("INDI=0")
         sendCmd("TXPO=4")
-        sendCmd("COMA=0")
+        //sendCmd("COMA=0")
+        //sendCmd("COMMAND:AT+INFO=1\r")
     }
     
     func sendCmd (_ cmd: String, characteristic : CBCharacteristic? = nil)  {
@@ -210,6 +211,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
 
+        print ("send cmd: " + cmd)
         peripheral.writeValue(data, for: c, type: .withResponse )
     }
 
