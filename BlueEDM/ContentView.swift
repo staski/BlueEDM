@@ -187,17 +187,32 @@ struct RecordingView : View {
                         else {
                             self.edm.stopCapturing()
                             let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                            /*
+                             we save a hidden file with the download dateandtime in its name as found in the jpi file.
+                             This is datetime is immutable and used to identify duplicates. On the other hand this datetime is
+                             relative to to the time set on the EDM device, which might be wrong. Therefore we store the actual
+                             data file with the "real" datetime in its name. The difference between the datetime in the name and the
+                             datetime in the datefile itself can later be used to correct the flight dates (which are also relative
+                             to the - potentially wrong - time setting of the EDM device
+                             */
                             if let fh = edm.edmFileParser.edmFileData.edmFileHeader {
-                                let fileName = String(fh.registration) + "_" + fh.date!.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
-                                let edmFileName = documentPath.appendingPathComponent(fileName)
+                                let helperDate = fh.date!
+                                let realDate = Date()
+                                
+                                let helperName = "." + String(fh.registration) + "_" + helperDate.toString(dateFormat: "YYYYMMdd_HHmm") + "_hlp.jpi"
+                                let realName = String(fh.registration) + "_" + realDate.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
+                                
+                                let edmHelperName = documentPath.appendingPathComponent(helperName)
+                                let edmRealName = documentPath.appendingPathComponent(realName)
                                 do {
-                                    if !FileManager.default.fileExists(atPath: edmFileName.path) {
-                                        try edm.receivedData.write(to: edmFileName)
-                                        edm.headerDataText.append("written: " + fileName)
-                                        print ("written: " + fileName)
+                                    if !FileManager.default.fileExists(atPath: edmHelperName.path) {
+                                        try edm.receivedData.write(to: edmRealName)
+                                        try Data().write(to: edmHelperName)
+                                        edm.headerDataText.append("written: " + realName)
+                                        print ("written: " + realName)
                                     } else {
-                                        edm.headerDataText.append("file already exists: " + fileName)
-                                        print("file already exists: " + fileName)
+                                        edm.headerDataText.append("file already exists: " + realName)
+                                        print("file already exists: " + realName)
                                     }
                                 } catch {
                                     print ("error while trying to write \(error)")
