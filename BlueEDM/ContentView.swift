@@ -65,7 +65,7 @@ struct FileView : View {
                     return " -- invalid data --- "
                 }
                 edmFileParser.edmFileData.edmFileHeader = header
-                myText.append(header.stringValue())
+                myText.append(header.stringValue(includeFlights: false))
             }
         }
         

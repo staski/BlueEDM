@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct EdmAlarmLimits {
+struct EdmAlarmLimits : Encodable {
     var voltsHi     : Int = 0
     var voltsLow    : Int = 0
     var diff        : Int = 0
@@ -57,7 +57,7 @@ struct EdmAlarmLimits {
     }
 }
 
-enum FuelFlowUnit {
+enum FuelFlowUnit : Encodable {
     case GPH // Gallon per hour
     case KPH // Kilogram per hour
     case LPH // Liter per hour
@@ -69,7 +69,7 @@ enum FuelFlowUnit {
 
 }
 
-struct EdmFuelFlow {
+struct EdmFuelFlow : Encodable {
     var fuelFlow        : FuelFlowUnit = .LPH
     var ftank1 : Int , ftank2 : Int
     var k1, k2          : Int
@@ -112,8 +112,8 @@ struct EdmFuelFlow {
 }
 
 // -m-d fpai r2to eeee eeee eccc cccc cc-b
-struct EdmFeatures : OptionSet {
-    let rawValue: Int
+struct EdmFeatures : OptionSet, Encodable {
+    let rawValue: UInt32
     
     static let battery = EdmFeatures(rawValue: (1<<0))
     static let oil = EdmFeatures(rawValue: (1<<20))
@@ -150,12 +150,12 @@ struct EdmFeatures : OptionSet {
         EdmFeatures(rawValue: (1<<19)),
     ]
     
-    init(rawValue: Int) {
+    init(rawValue: UInt32) {
             self.rawValue = rawValue
     }
     
-    init (high: Int,low: Int){
-        self.rawValue = (high<<16) + low
+    init (high: UInt16,low: UInt16){
+        self.rawValue = (UInt32(high)<<16) + UInt32(low)
     }
     
     func numCylinders() -> Int {
@@ -212,9 +212,9 @@ struct EdmFeatures : OptionSet {
 }
 
 
-struct EdmConfig {
+struct EdmConfig : Encodable {
     var modelNumber : Int = 0
-    var flagsLow : Int = 0, flagsHi : Int = 0
+    var flagsLow : UInt16 = 0, flagsHi : UInt16 = 0
     var unknown : Int = 0
     var version : Int = 0
     var features =  EdmFeatures(rawValue: 0)
@@ -225,13 +225,23 @@ struct EdmConfig {
         }
         
         modelNumber = Int(values[0]) ?? -1
-        flagsLow = Int(values[1]) ?? -1
-        flagsHi = Int(values[2]) ?? -1
+        flagsLow = UInt16(values[1]) ?? 0
+        flagsHi = UInt16(values[2]) ?? 0
         unknown = Int(values[3]) ?? -1
         version = Int(values[4]) ?? -1
         features = EdmFeatures(high: flagsHi, low: flagsLow)
     }
     
+    func numOfEngines () -> Int {
+        if modelNumber == 760 {
+            return 2
+        }
+        return 1
+    }
+    
+    func hasRPM () -> Bool {
+        return false
+    }
     func stringValue () -> String {
         var str = ""
         str.append("Model: EDM" + String(modelNumber))
@@ -241,7 +251,7 @@ struct EdmConfig {
     }
 }
 
-struct EdmFileHeader {
+struct EdmFileHeader : Encodable {
     var registration : String = ""
     var date : Date?
     var alarms = EdmAlarmLimits()
@@ -277,26 +287,26 @@ struct EdmFileHeader {
         return r
     }
     
-    func stringValue() -> String {
+    func stringValue(includeFlights: Bool) -> String {
         var str = ""
         str.append("Header Size: " + String(headerLen))
         str.append(", Total Size: " + String(totalLen) + "\n\n")
         str.append("Registration: " + registration + "\n")
         if date != nil {
             str.append("Download Date: " + date!.toString(dateFormat: "dd.MM.YY HH:mm\n"))
-            str.append("(offset: " + String(Int((self.timeOffset()/60.0))) + " minutes)\n")
+            //str.append("(offset: " + String(Int((self.timeOffset()/60.0))) + " minutes)\n")
         }
         str.append(config.stringValue())
         str.append(config.features.stringValue())
         str.append(ff.stringValue())
         str.append(alarms.stringValue())
-        str.append("Flights:\n")
         
-        /*
-        for flight in flightInfos {
-            str.append(flight.stringValue())
+        str.append("Flights:\n")
+        if includeFlights {
+            for flight in flightInfos {
+                str.append(flight.stringValue())
+            }
         }
-        */
         return str
     }
     
@@ -305,7 +315,7 @@ struct EdmFileHeader {
     }
 }
 
-struct EdmFlightInfo {
+struct EdmFlightInfo : Encodable {
     var id : Int = 0
     var sizeWords : Int = 0
     
@@ -329,9 +339,9 @@ struct EdmFlightInfo {
     }
 }
 
-struct EdmFlightHeader {
+struct EdmFlightHeader : Encodable {
     var id : UInt16 = 0
-    var flags : UInt32 = 0
+    var flags = EdmFeatures()
     var unknown : UInt16 = 0
     var interval_secs : UInt16 = 0
     var date : Date?
@@ -356,7 +366,7 @@ struct EdmFlightHeader {
         }
         
         id = a[0]
-        flags = UInt32(a[1]) << 16 + UInt32(a[2])
+        flags = EdmFeatures(high: a[2], low: a[1])
         unknown = a[3]
         interval_secs = a[4]
         
@@ -380,23 +390,24 @@ struct EdmFlightHeader {
     }
 }
 
-struct EdmFlightDataBody {
-    var c = 0
-    
-    func info () -> String {
-        return "Edm Flight-Data Body"
+struct EdmFileData : Encodable {
+    var edmFileHeader : EdmFileHeader?
+    var edmFlightData : [EdmFlightData]
+    init () {
+        edmFlightData = []
     }
 }
 
-struct EdmFlightDatum {
-    var flightHeader : EdmFlightHeader?
-    var flightDataBody : EdmFlightDataBody?
+enum EdmTracelevel: Int {
+    case error = 0
+    case warn
+    case info
+    case all
 }
+var traceLevel : EdmTracelevel = .error
 
-struct EdmFileData {
-    var edmFileHeader : EdmFileHeader?
-    var edmFlightData : [EdmFlightDatum]
-    init () {
-        edmFlightData = []
+func trc(level: EdmTracelevel, string : @autoclosure () -> String) {
+    if level.rawValue <= traceLevel.rawValue {
+        print(string())
     }
 }

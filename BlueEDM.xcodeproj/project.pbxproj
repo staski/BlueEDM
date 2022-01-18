@@ -18,6 +18,7 @@
 		5C9EBE0927025B0A00305F64 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5C9EBE0827025B0A00305F64 /* Preview Assets.xcassets */; };
 		5C9EBE1427025B0A00305F64 /* BlueEDMTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9EBE1327025B0A00305F64 /* BlueEDMTests.swift */; };
 		5C9EBE1F27025B0A00305F64 /* BlueEDMUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C9EBE1E27025B0A00305F64 /* BlueEDMUITests.swift */; };
+		5CC0B15C279618A30043D782 /* EdmFlightData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CC0B15B279618A30043D782 /* EdmFlightData.swift */; };
 		5CE5A4432714099C006F44CE /* EdmFileList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE5A4422714099C006F44CE /* EdmFileList.swift */; };
 /* End PBXBuildFile section */
 
@@ -54,6 +55,7 @@
 		5C9EBE1A27025B0A00305F64 /* BlueEDMUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlueEDMUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C9EBE1E27025B0A00305F64 /* BlueEDMUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueEDMUITests.swift; sourceTree = "<group>"; };
 		5C9EBE2027025B0A00305F64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5CC0B15B279618A30043D782 /* EdmFlightData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EdmFlightData.swift; sourceTree = "<group>"; };
 		5CE5A4422714099C006F44CE /* EdmFileList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdmFileList.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -105,6 +107,7 @@
 		5C9EBE0027025B0900305F64 /* BlueEDM */ = {
 			isa = PBXGroup;
 			children = (
+				5CC0B15B279618A30043D782 /* EdmFlightData.swift */,
 				5C9EBE0127025B0900305F64 /* BlueEDMApp.swift */,
 				5C9EBE0327025B0900305F64 /* ContentView.swift */,
 				5C21ACC9270C187300FAF6F1 /* EDMBluetoothManager.swift */,
@@ -275,6 +278,7 @@
 			files = (
 				5C24FE202721AFBF007CEB8C /* EdmFileParser.swift in Sources */,
 				5C7A49572714D5BC00EC32E8 /* EdmFileData.swift in Sources */,
+				5CC0B15C279618A30043D782 /* EdmFlightData.swift in Sources */,
 				5C9EBE0427025B0900305F64 /* ContentView.swift in Sources */,
 				5C9EBE0227025B0900305F64 /* BlueEDMApp.swift in Sources */,
 				5CE5A4432714099C006F44CE /* EdmFileList.swift in Sources */,

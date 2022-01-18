@@ -296,7 +296,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                     return
                 }
                 edmFileParser.edmFileData.edmFileHeader = header
-                headerDataText.append(header.stringValue())
+                headerDataText.append(header.stringValue(includeFlights: false))
             }
         }
         
