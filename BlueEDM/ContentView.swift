@@ -211,8 +211,8 @@ struct RecordingView : View {
                                         edm.headerDataText.append("written: " + realName)
                                         print ("written: " + realName)
                                     } else {
-                                        edm.headerDataText.append("file already exists: " + realName)
-                                        print("file already exists: " + realName)
+                                        edm.headerDataText.append("file already exists: " + helperName)
+                                        print("file already exists: " + helperName)
                                     }
                                 } catch {
                                     print ("error while trying to write \(error)")
@@ -300,7 +300,7 @@ struct SettingsView : View {
                                 Text("Rescan")
                                 Image(systemName: "arrow.triangle.2.circlepath").imageScale(.medium)
                             }
-                        }).disabled(!edm.deviceConnected)
+                        })//.disabled(!edm.deviceConnected)
 
                     }
                     if edm.deviceConnected == true {

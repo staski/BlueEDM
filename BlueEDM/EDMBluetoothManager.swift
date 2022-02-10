@@ -17,12 +17,17 @@ struct DataTransferService {
     static let taskitServiceUUID = CBUUID(string: "912FFFF0-3D4B-11E3-A760-0002A5D5C51B")
     static let taskitCharacteristicValueUUID = CBUUID(string: "912FFFF1-3D4B-11E3-A760-0002A5D5C51B")
     static let taskitCharacteristicCmdValueUUID = CBUUID(string: "912FFFF2-3D4B-11E3-A760-0002A5D5C51B")
+    
+    static let dsdhm18ServiceUUID = CBUUID(string: "FFE0")
+    static let dsdhm18CharacteristicValueUUID = CBUUID(string: "FFE1")
+    static let dsdhm18CharacteristicCmdValueUUID = CBUUID(string: "FFE2")
 }
 
 enum BlueEdmDeviceType {
     case BlueEdmDeviceNone
     case BlueEdmDeviceLintech
     case BlueEdmDeviceTaskit
+    case BlueEdmDeviceDsdhm18
 }
 
 extension Data {
@@ -32,6 +37,14 @@ extension Data {
         }
         let a : UInt = UInt(self[0]) << 24 +  UInt(self[1]) << 16 + UInt(self[2]) << 8 + UInt(self[3])
         return a
+    }
+    
+    func stringValue() -> String {
+        var s : String = ""
+        for i in 0..<self.count {
+            s.append(Character(Unicode.Scalar(self[i])))
+        }
+        return s
     }
 }
 
@@ -62,6 +75,7 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     private var valCharacteristic : CBCharacteristic?
     
     var deviceType : BlueEdmDeviceType = .BlueEdmDeviceNone
+    private var cmdCount = 0 // the number of unresponded commands
     
     override init() {
         super.init()
@@ -156,12 +170,46 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         return true
     }
 
+    func isPeripheralDsdhm18(_ advertisementData: [String : Any]) -> Bool {
+        
+        let manufacturerDsdhm = 0x484d
+        // let deviceDsdhm18BLE = 0x6098
+     
+        let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        guard let a = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data else {
+            print("isPeripheralDsdhm18: no manufacturer data available, ignore device " + (name ?? "unnamed") + "\n")
+            return false
+        }
+
+        guard let num = a.readUInt() else {
+            print("isPeripheralDsdhm18: found non HM18 BLE device " + (name ?? "unnamed") + "with manufacture Data:  " + a.description + "\n")
+            print(advertisementData)
+            return false
+        }
+
+        let device = num & 0xFFFF
+        let manufacturer = (num & 0xFFFF0000) >> 16
+
+        if manufacturer != manufacturerDsdhm {
+            print("isPeripheralDsdhm18: found non DSD HM BLE device " + (name ?? "unnamed") + ", " + a.description)
+            print(String(format: "num: 0x%04X manufacturer: 0x%04X, device: 0x%04X\n", num, manufacturer, device))
+            return false
+        }
+
+        print("isPeripheralDsdhm18: found DSD HM BLE device " + (name ?? "unnamed") + ", " + a.description)
+        print(String(format: "num: 0x%04X manufacturer: 0x%04X, device: 0x%04X\n", num, manufacturer, device))
+
+        return true
+    }
+    
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
         if (isPeripheralTaskit(advertisementData)){
             deviceType = BlueEdmDeviceType.BlueEdmDeviceTaskit
         } else if (isPeripheralLintech(advertisementData)){
             deviceType = BlueEdmDeviceType.BlueEdmDeviceTaskit
+        } else if (isPeripheralDsdhm18(advertisementData)){
+            deviceType = BlueEdmDeviceType.BlueEdmDeviceDsdhm18
         }
         
         if deviceType == .BlueEdmDeviceNone {
@@ -211,6 +259,9 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             if pservice.uuid == DataTransferService.taskitServiceUUID {
                 peripheral.discoverCharacteristics([DataTransferService.taskitCharacteristicValueUUID, DataTransferService.taskitCharacteristicCmdValueUUID], for: pservice)
             }
+            if pservice.uuid == DataTransferService.dsdhm18ServiceUUID {
+                peripheral.discoverCharacteristics([DataTransferService.dsdhm18CharacteristicValueUUID, DataTransferService.dsdhm18CharacteristicCmdValueUUID], for: pservice)
+            }
         }
    }
     
@@ -223,61 +274,78 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                 peripheral.setNotifyValue(true, for: pcharacteristic)
                 valCharacteristic = pcharacteristic
             }
+
             if pcharacteristic.uuid == DataTransferService.taskitCharacteristicValueUUID {
                 print("register for transfer service value")
                 peripheral.setNotifyValue(true, for: pcharacteristic)
                 valCharacteristic = pcharacteristic
             }
 
+            if pcharacteristic.uuid == DataTransferService.dsdhm18CharacteristicValueUUID {
+                print("register for transfer service value")
+                peripheral.setNotifyValue(true, for: pcharacteristic)
+                valCharacteristic = pcharacteristic
+                // the HM devices accept commands over the "regular" value characteristic
+                cmdCharacteristic = pcharacteristic
+                initDevice()
+            }
+            
             if pcharacteristic.uuid == DataTransferService.lintechCharacteristicCmdValueUUID {
                 print("register for transfer service cmd value")
                 peripheral.setNotifyValue(true, for: pcharacteristic)
                 cmdCharacteristic = pcharacteristic
                 initDevice()
             }
+            
             if pcharacteristic.uuid == DataTransferService.taskitCharacteristicCmdValueUUID {
                 print("register for transfer service cmd value")
                 peripheral.setNotifyValue(true, for: pcharacteristic)
                 cmdCharacteristic = pcharacteristic
                 initDevice()
             }
+
+            if pcharacteristic.uuid == DataTransferService.dsdhm18CharacteristicCmdValueUUID {
+                print("register for transfer service command value")
+                peripheral.setNotifyValue(true, for: pcharacteristic)
+                valCharacteristic = pcharacteristic
+                cmdCharacteristic = pcharacteristic
+                initDevice()
+            }
+
             print(pcharacteristic.uuid.uuidString)
             printProperties(pcharacteristic.properties)
             print(pcharacteristic.description)
         }
     }
     
-    func readCmd () {
-        guard let c = cmdCharacteristic else {
-            print("no characteristic for commands available\n")
-            return
-        }
-        
-        guard let peripheral = self.peripheral else {
-            print ("no peripheral\n")
-            return
-        }
-        peripheral.readValue(for: c)
-    }
-    
     func initDevice() {
         switch deviceType {
             case .BlueEdmDeviceLintech:
-                sendLintechCmd("UART=5,1,0")
-                sendLintechCmd("INDI=0")
-                sendLintechCmd("TXPO=4")
-                //sendCmd("COMA=0")
-                //sendCmd("COMMAND:AT+INFO=1\r")
+            sendCmd("UART=5,1,0")
+            sendCmd("INDI=0")
+            sendCmd("TXPO=4")
         case .BlueEdmDeviceTaskit:
-                readCmd()
-                //sendTaskitCmd(3)
+            print("initDevice: no init actions defined for TaskIt device")
+            //readCmd()
+            //sendCmd("3")
+        case .BlueEdmDeviceDsdhm18:
+            sendCmd("AT+BAUD?")
+            sendCmd("AT+POWE?")
         default:
-                print ("initDevice: no device available, ignore")
+            print ("initDevice: no device available, ignore")
         }
     }
+
+    // send a command to the peripheral
+    func sendCmd (_ cmd: String, characteristic : CBCharacteristic? = nil)  {
     
-    func sendLintechCmd (_ cmd: String, characteristic : CBCharacteristic? = nil)  {
-        let data = Data(cmd.utf8)
+        var data = Data()
+        if deviceType == .BlueEdmDeviceTaskit {
+            let v = cmd.utf8.first!
+            data = Data(repeating: v, count: 1)
+        } else {
+            data = Data(cmd.utf8)
+        }
         
         guard let c = cmdCharacteristic else {
             print("no characteristic for commands available\n")
@@ -289,31 +357,18 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
 
-        print ("send cmd: " + cmd)
+        print ("sendCmd: " + cmd)
+        cmdCount += 1
         peripheral.writeValue(data, for: c, type: .withResponse )
     }
     
-    func sendTaskitCmd (_ value: Int, characteristic : CBCharacteristic? = nil) {
-        let data = Data(repeating: UInt8(value), count: 1)
-        
-        guard let c = cmdCharacteristic else {
-            print("no characteristic for commands available\n")
-            return
-        }
-        
-        guard let peripheral = self.peripheral else {
-            print ("no peripheral\n")
-            return
-        }
-
-        peripheral.writeValue(data, for: c, type: .withResponse )
-    }
-
-    func initTaskit() {
-        readCmd()
-    }
-    
+    // read the return value of the sendCmd, triggered by writeValueFor
     func readCmdReturn (_ data : Data){
+        if deviceType == .BlueEdmDeviceDsdhm18 {
+            let s : String = data.stringValue()
+            print ("BLE device returned \(s) from write")
+        }
+        
         if deviceType != .BlueEdmDeviceTaskit {
             return
         }
@@ -323,7 +378,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             print ("readCmdReturn: current data cmd value is \(b)")
             if (b != 3){
                 print("readCmdReturn: set it to 3 (19200,8,N,1)")
-                sendTaskitCmd(3)
+                sendCmd("3")
             }
         }
         else {
@@ -335,6 +390,17 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         
         if let error = error {
             print("Write error " + error.localizedDescription + "occured for characteristic" + characteristic.uuid.uuidString)
+            if cmdCount > 0 {
+                cmdCount -= 1
+            }
+            return
+        }
+        
+        if cmdCount > 0 {
+            cmdCount -= 1
+        } else {
+            print("didWriteValueFor: \(characteristic) no write open")
+            return
         }
         
         if characteristic == cmdCharacteristic || characteristic == valCharacteristic {
@@ -346,10 +412,8 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                 print ("return from write ok without data")
                 return
             }
-            
-            //readCmdReturn(d)
-            let v = UInt8(d[0])
-            print ("returned the value: \(v)")
+        
+            print ("didWriteValueFor: returned " + d.stringValue() + ";")
             return
         }
     }
@@ -361,7 +425,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         }
         
         //print("received update for characteristic " + characteristic.description + ", value: " + (characteristic.value?.description ?? ""))
-        if characteristic == cmdCharacteristic {
+        if cmdCount > 0 && characteristic == cmdCharacteristic {
             guard let d = characteristic.value else {
                 print ("no return data for cmd received")
                 return
