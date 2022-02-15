@@ -318,6 +318,7 @@ struct EdmFileHeader : Encodable {
 struct EdmFlightInfo : Encodable {
     var id : Int = 0
     var sizeWords : Int = 0
+    var offset : Int = 0 // byte offset of this flights data in the data stream
     
     var sizeBytes : Int {
         return sizeWords * 2
@@ -334,8 +335,15 @@ struct EdmFlightInfo : Encodable {
     
     func stringValue() -> String {
         var str = ""
-        str.append("Id: " + String(id) + ", Size: " + String(sizeBytes) + " Bytes\n")
+        str.append("Id: " + String(id) + ", Offset: " + String(offset) + ", Size: " + String(sizeBytes) + " Bytes\n")
         return str
+    }
+}
+
+extension UInt16 {
+    func bytesumval() -> UInt {
+        let r : UInt16 = self & 0xff + (self >> 8) & 0xff
+        return UInt(r & 0xff)
     }
 }
 
@@ -345,7 +353,7 @@ struct EdmFlightHeader : Encodable {
     var unknown : UInt16 = 0
     var interval_secs : UInt16 = 0
     var date : Date?
-    var checksum : Int8 = 0
+    var checksum : UInt8 = 0
     
     func stringValue () -> String {
         var str = ""
@@ -358,11 +366,11 @@ struct EdmFlightHeader : Encodable {
         return str
     }
     
-    init (values a : [UInt16], checksum : Int8 ){
+    init? (values a : [UInt16], checksum : UInt8){
        
     
         if a.count < 7 {
-            return
+            return nil
         }
         
         id = a[0]
@@ -386,6 +394,13 @@ struct EdmFlightHeader : Encodable {
         let c = Calendar(identifier: Calendar.Identifier.gregorian)
         date = c.date(from: dc)
         
+        var cs = a.map { $0.bytesumval() }.reduce(0,+) & 0xff
+        cs = (256 - cs) & 0xff
+        
+        if cs != checksum {
+            print(String(format: "EdmFlightHeader (id %d): failed for checksum (required 0x%X , data 0x%X", id, checksum, cs))
+            return nil
+        }
         self.checksum = checksum
     }
 }

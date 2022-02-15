@@ -99,6 +99,7 @@ struct EdmFileParser {
     mutating func parseFlightDataRecord(rec original: EdmFlightDataRecord) ->EdmFlightDataRecord {
         var rdr = EdmRawDataRecord()
         var rec = original
+        let recstart = nextread // keep this for later checksum calculation
         
         // read the decode flagw
         guard let df = parseFlightDecodeFlags() else {
@@ -228,7 +229,18 @@ struct EdmFileParser {
         }
         
         rec.add(rawValue: rdr)
-        let _ = readByte()
+        
+        // do the checksum stuff
+        var cs : UInt8 = 0
+        for i in recstart ..< nextread {
+            cs = cs &+ data[i]
+        }
+        
+        cs = 0 &- cs
+        let storedcs = readByte()
+        if cs != storedcs {
+            trc(level: .error, string: String(format: "ParseFlightDataRecord: checksum failed (expected 0x%X , found 0x%X)", storedcs, cs))
+        }
         return rec
     }
     
@@ -438,13 +450,10 @@ struct EdmFileParser {
             a.append(readUShort())
         }
         
-        let cs = Int8(self[nextread].asciiValue ?? 0)
+        let cs = self.data[nextread]
         nextread += 1
         
         let fh = EdmFlightHeader(values: a, checksum: cs)
-        //var efd = EdmFlightData()
-        //efd.flightHeader = fh
-        //edmFileData.edmFlightData.append(efd)
         
         return fh
     }
@@ -478,7 +487,8 @@ struct EdmFileParser {
         edmFileHeader.headerLen = nextread
         edmFileHeader.totalLen = edmFileHeader.headerLen
         
-        for flight in edmFileHeader.flightInfos {
+        for (index, flight) in edmFileHeader.flightInfos.enumerated() {
+            edmFileHeader.flightInfos[index].offset = edmFileHeader.totalLen
             edmFileHeader.totalLen += flight.sizeBytes
         }
 
