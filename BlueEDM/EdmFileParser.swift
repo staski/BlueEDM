@@ -105,10 +105,10 @@ struct EdmFileParser {
             return rec
         }
         rdr.decodeFlags = df
-        trc(level: .info, string: "decode flags:" + String(df.rawValue, radix: 2))
+        trc(level: .all, string: "parseFlightDataRecord: decode flags = " + String(df.rawValue, radix: 2))
         
         rdr.repeatCount = Int8(readByte())
-        trc(level: .info, string: "repeat count: \(rdr.repeatCount)")
+        trc(level: .all, string: "parseFlightDataRecord: repeat count = \(rdr.repeatCount)")
         
         // read the compressed value flags
         // TODO assert rdr.valueFlags.numberOfBytes <= rdr.decodeFlags.numberofBits
@@ -116,20 +116,20 @@ struct EdmFileParser {
         for i in 0..<rdr.valueFlags.numberOfBytes {
             if rdr.decodeFlags!.hasBit(i: i) {
                 var tmp = Int64(readByte())
-                trc(level: .info, string: "f_value \(i): \(tmp) " + String(tmp, radix: 2) + ", " + String(tmp, radix: 16))
+                //trc(level: .all, string: "parseFlightDataRecord: f_value = \(i): \(tmp) " + String(tmp, radix: 2) + ", " + String(tmp, radix: 16))
                 tmp <<= i*8
                 value64 += tmp
             }
         }
         rdr.valueFlags = EdmValueFlags(rawValue: value64)
-        trc(level: .info, string: "valueFlags: \(value64), Binary: " + String(value64, radix: 16))
+        trc(level: .all, string: "parseFlightDataRecord: valueFlags = \(value64), Binary: " + String(value64, radix: 16))
                
         // read the compressed scale flags
         var value16 : Int16 = 0
         for i in 0..<rdr.scaleFlags.numberOfBytes {
             if rdr.decodeFlags!.hasBit(i: i + rdr.valueFlags.numberOfBytes) {
                 var tmp = Int16(readByte())
-                trc(level: .info, string: "f_scale \(i): \(tmp) " + String(tmp, radix: 2) + ", " + String(tmp, radix: 16))
+                //trc(level: .all, string: "parseFlightDataRecord: f_scale = \(i): \(tmp) " + String(tmp, radix: 2) + ", " + String(tmp, radix: 16))
                 tmp <<= i*8
                 value16 += tmp
             }
@@ -142,7 +142,7 @@ struct EdmFileParser {
         for i in 0..<rdr.signFlags.numberOfBytes {
             if rdr.decodeFlags!.hasBit(i: i) {
                 var tmp = Int64(readByte())
-                trc(level: .info, string: "f_sign \(i): \(tmp) " + String(tmp, radix: 2) + ", " + String(tmp, radix: 16))
+                //trc(level: .all, string: "parseFlightDataRecord: f_sign = \(i): \(tmp) " + String(tmp, radix: 2) + ", " + String(tmp, radix: 16))
                 tmp <<= i*8
                 value64 += tmp
             }
@@ -160,7 +160,7 @@ struct EdmFileParser {
                 }
                 rdr.values[i] += (rdr.signFlags.hasBit(i: i) ? -1 : 1) * Int16(UInt16(val8))
                 
-                trc(level: .info, string: "value \(i) val8 \(val8), values: \(rdr.values[i])")
+                //trc(level: .all, string: "parseFlightDataRecord: value = \(i) val8 \(val8), values: \(rdr.values[i])")
             }
         }
         
@@ -178,7 +178,7 @@ struct EdmFileParser {
                         rec.naflags.setBit(i: idx)
                     }
                     rdr.values[idx] += (rdr.signFlags.hasBit(i: idx) ? -1 : 1) * tmp
-                    trc(level: .info, string: "\(idx): \(tmp) (" + String(tmp, radix: 2) + "), \(rdr.values[idx]) (" + String(rdr.values[idx], radix: 16) + ")")
+                    //trc(level: .all, string: "parseFlightDataRecord \(idx): \(tmp) (" + String(tmp, radix: 2) + "), \(rdr.values[idx]) (" + String(rdr.values[idx], radix: 16) + ")")
                 }
             }
         }
@@ -212,19 +212,20 @@ struct EdmFileParser {
             for j in 0..<numOfCyl {
                 let idx = (j<6) ? (i*24 + j):(i+24-j)
                 
-                trc(level: .info, string: "i: \(i), j \(j), idx \(idx)")
+                // trc(level: .all, string: "parseFlightDataRecord i: \(i), j \(j), idx \(idx)")
                 if !rec.naflags.hasBit(i: idx) {
                     if rdr.values[idx] > max {
                         max = rdr.values[idx]
-                        trc(level: .info, string: "new max \(max)")
+                        //trc(level: .all, string: "parseFlightDataRecord: new max \(max)")
                     }
                     if rdr.values[idx] < min {
                         min = rdr.values[idx]
-                        trc(level: .info, string: "new min \(min)")
+                        //trc(level: .all, string: "parseFlightDataRecord: new min \(min)")
                     }
                 }
             }
             rec.diff[i] = Int(max) - Int(min)
+            trc(level: .all, string: "parseFlightDataRecord: diff for engine \(i) \(rec.diff[i])")
         }
         
         rec.add(rawValue: rdr)
@@ -284,13 +285,13 @@ struct EdmFileParser {
             let cs = UInt8(s, radix: 16)
         
             if cs != headerChecksum {
-                trc(level: .error, string: "checksum error: " + String(cs ?? 0) + " != " + String(headerChecksum) + " (" + s + ")")
+                trc(level: .error, string: "parseHeaderLine: checksum error. Required " + String(cs ?? 0) + ", calculated " + String(headerChecksum) + " (" + s + ")")
             }
             nextread += 2
             
             // read \n\r
             if self[nextread] != "\r" || self[nextread + 1] != "\n" {
-                trc(level: .error, string: "invalid token at EOL " + String(self[nextread]))
+                trc(level: .error, string: "parseHeaderLine: invalid token at EOL " + String(self[nextread]))
                 nextread += 2
                 hl.lineType = .lineTypeInvalid
                 return hl
@@ -318,9 +319,9 @@ struct EdmFileParser {
         }
         
         if hl.lineType == .lineTypeInvalid {
-            trc(level: .error, string: "invalid line type: \(linetypechar)")
+            trc(level: .error, string: "parseHeaderLine: invalid line type: \(linetypechar)")
         }
-        trc(level: .info, string: "return new line, type: " + String(linetypechar))
+        trc(level: .info, string: "parseHeaderLine: return new line, type: " + String(linetypechar))
         return hl
     }
     
@@ -352,20 +353,20 @@ struct EdmFileParser {
         let flags = flightheader.flags
         
         if (flightId != id) {
-            trc(level: .warn, string: "Flight Ids dont match. Wanted \(id), found \(flightId)")
+            trc(level: .error, string: "parseFlightHeaderAndBody(\(id)): flight Ids dont match. Wanted \(id), found \(flightId)")
             self.invalid = true
             return
         }
 
         let features = self.edmFileData.edmFileHeader!.config.features
         if (flags.rawValue != features.rawValue){
-            trc(level: .error, string: "flags dont match. flight " + flags.stringValue() + ", file " + features.stringValue())
+            trc(level: .warn, string: "parseFlightHeaderAndBody(\(id)): flags dont match. flight " + flags.stringValue() + ", file " + features.stringValue())
 //            self.invalid = true
 //            return
         }
 
         guard let idx =  edmFileData.edmFileHeader!.idx(for: id) else {
-            trc(level: .error, string: "parseFlightHeaderAndBody: no idx found for flight id \(id)")
+            trc(level: .error, string: "parseFlightHeaderAndBody(\(id)): no idx found for flight id \(id)")
             self.invalid = true
             return
         }
@@ -374,7 +375,7 @@ struct EdmFileParser {
         let nextflightread = nextread + size
         
         if available < size {
-            trc(level: .warn, string: "Not enough data (have \(available), need \(size)")
+            trc(level: .error, string: "parseFlightHeaderAndBody(\(id)): Not enough data (have \(available), need \(size)")
             self.invalid = true
             return
         }
@@ -383,7 +384,7 @@ struct EdmFileParser {
         efd.flightHeader = flightheader
         
         guard let date = flightheader.date else {
-            trc(level: .error,string:  "no date in header")
+            trc(level: .error,string:  "parseFlightHeaderAndBody(\(id)): no date in header")
             self.invalid = true
             return
         }
@@ -391,34 +392,34 @@ struct EdmFileParser {
         currentRec.date = date
         var interval_secs = TimeInterval(flightheader.interval_secs)
         
+        var reccount = 0
         while nextread + 3 <= nextflightread {
             guard let rec = parseFlightDataRecord(rec: currentRec) else {
-                trc(level: .error, string: "parseFlightDataAndBody: parsing flight record failed")
+                trc(level: .error, string: "parseFlightDataAndBody(\(id),\(reccount)): parsing flight record failed")
                 self.invalid = true
                 return
             }
             //rec.date = date
             
             var rc = rec.repeatCount
+            reccount += rc + 1
             while rc > 0 {
                 efd.flightDataBody.append(currentRec)
                 rc -= 1
             }
             
-            if traceLevel.rawValue > EdmTracelevel.info.rawValue {
-                trc(level: .info, string: rec.stringValue())
-            }
+            trc(level: .info, string: "parseFlightHeaderAndBody (\(id), \(reccount)): " + rec.stringValue())
             
             efd.flightDataBody.append(rec)
             currentRec = rec
             currentRec.repeatCount = 0
             if currentRec.mark == 2 {
-                trc(level: .info, string: "parseFlightHeaderAndBody: mark is 2, timeinterval is 1 second")
+                trc(level: .info, string: "parseFlightHeaderAndBody(\(id),\(reccount)): mark is 2, switch timeinterval to 1 second")
                 interval_secs = 1
             }
             
             if currentRec.mark == 3 {
-                trc(level: .info, string: "parseFlightHeaderAndBody: mark is 3, timeinterval is \(flightheader.interval_secs) second")
+                trc(level: .info, string: "parseFlightHeaderAndBody(\(id),\(reccount): mark is 3, switch back timeinterval to \(flightheader.interval_secs) second")
                 interval_secs = TimeInterval(flightheader.interval_secs)
             }
             currentRec.date = currentRec.date!.advanced(by: interval_secs)
@@ -426,7 +427,7 @@ struct EdmFileParser {
         
         edmFileData.edmFlightData.append(efd)
 
-        trc(level: .info, string: "nextread is \(nextread), next flight starts at \(nextflightread), size is  \(size) ")
+        trc(level: .info, string: "parseFlightHeaderAndBody(\(id)): nextread is \(nextread), next flight starts at \(nextflightread), size is  \(size) ")
 
         nextread = nextflightread
 
