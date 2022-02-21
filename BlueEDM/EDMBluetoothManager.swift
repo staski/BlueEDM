@@ -67,8 +67,9 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     // the saved files 1:1
     var edmFiles = [EdmFile]()
     
-    // the parsed header file
     var edmFileParser : EdmFileParser = EdmFileParser()
+    // index into the array of all flights indicating the next not yet parsed one
+    var nextIndex : Int = 0
     
     private var cmdMode = false
     private var cmdCharacteristic : CBCharacteristic?
@@ -424,7 +425,6 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             print("Read error " + error.localizedDescription + "occured for characteristic" + characteristic.uuid.uuidString)
         }
         
-        //print("received update for characteristic " + characteristic.description + ", value: " + (characteristic.value?.description ?? ""))
         if cmdCount > 0 && characteristic == cmdCharacteristic {
             guard let d = characteristic.value else {
                 print ("no return data for cmd received")
@@ -457,6 +457,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                     return
                 }
                 edmFileParser.edmFileData.edmFileHeader = header
+                nextIndex = 0
                 headerDataText.append(header.stringValue(includeFlights: false))
             }
         }
@@ -465,22 +466,29 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
         
-        /*
-        if receivedData.count < header.totalLen {
-            return
-        }
-         */
-    
-        while edmFileParser.complete == false && edmFileParser.available >= header.flightInfos[edmFileParser.nextFlightIndex!].sizeBytes {
-            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip() else {
+        for i in nextIndex..<header.flightInfos.count
+        {
+            
+            let id = header.flightInfos[i].id
+            
+            let size = header.flightInfos[i].sizeBytes
+            
+            if edmFileParser.available < size {
                 return
             }
             
+            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip(for: id) else {
+                return
+            }
+            nextIndex += 1
             headerDataText.append(flightheader.stringValue())
+            
         }
         
-        if edmFileParser.complete && edmFileParser.available > 0 {
-            print("Data complete: " + String(edmFileParser.available) + " Bytes excess\n")
+        
+        trc(level: .all, string: "nextIndex: \(nextIndex), count: \(header.flightInfos.count), available: \(edmFileParser.available)")
+        if (nextIndex >= header.flightInfos.count) && (edmFileParser.available > 0) {
+            trc(level: .info,string: "Data complete: " + String(edmFileParser.available) + " Bytes excess\n")
         }
     }
     

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct EdmAlarmLimits : Encodable {
     var voltsHi     : Int = 0
@@ -261,6 +262,15 @@ struct EdmFileHeader : Encodable {
     var headerLen = 0
     var totalLen = 0
     
+    func idx(for flightid: Int) -> Int? {
+        for (i, info) in flightInfos.enumerated() {
+            if info.id == flightid {
+                return i
+            }
+        }
+        return nil
+    }
+        
     func initDate(_ values: [String]) -> Date? {
         if values.count != 6 {
             return nil
@@ -419,7 +429,12 @@ enum EdmTracelevel: Int {
     case info
     case all
 }
+
 var traceLevel : EdmTracelevel = .error
+
+func setTraceLevel(_ level : EdmTracelevel) {
+    traceLevel = level
+}
 
 func trc(level: EdmTracelevel, string : @autoclosure () -> String) {
     if level.rawValue <= traceLevel.rawValue {

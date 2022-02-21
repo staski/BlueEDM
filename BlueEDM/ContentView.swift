@@ -73,17 +73,23 @@ struct FileView : View {
             return " --- invalid --- "
         }
                 
-        while edmFileParser.complete == false && edmFileParser.available >= header.flightInfos[edmFileParser.nextFlightIndex!].sizeBytes {
-            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip() else {
+        for i in 0..<header.flightInfos.count
+        {
+            if edmFileParser.invalid == true {
                 return " --- invalid --- "
             }
             
+            let id = header.flightInfos[i].id
+            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip(for: id) else {
+                return " --- invalid --- "
+            }
             myText.append(flightheader.stringValue())
         }
-        
+
         if edmFileParser.complete && edmFileParser.available > 0 {
             print("Data complete: " + String(edmFileParser.available) + " Bytes excess\n")
         }
+
         return myText
     }
     

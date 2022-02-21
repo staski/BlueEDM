@@ -13,7 +13,6 @@ struct EdmFileParser {
     var nextread  = 0
     var eor = false // signals end of record
     var headerChecksum : UInt8 = 0
-    var nextFlightIndex : Int?
     var complete = false
     var invalid = false
 
@@ -96,7 +95,7 @@ struct EdmFileParser {
         return String()
     }
     
-    mutating func parseFlightDataRecord(rec original: EdmFlightDataRecord) ->EdmFlightDataRecord {
+    mutating func parseFlightDataRecord(rec original: EdmFlightDataRecord) ->EdmFlightDataRecord? {
         var rdr = EdmRawDataRecord()
         var rec = original
         let recstart = nextread // keep this for later checksum calculation
@@ -240,6 +239,7 @@ struct EdmFileParser {
         let storedcs = readByte()
         if cs != storedcs {
             trc(level: .error, string: String(format: "ParseFlightDataRecord: checksum failed (expected 0x%X , found 0x%X)", storedcs, cs))
+            return nil
         }
         return rec
     }
@@ -324,31 +324,26 @@ struct EdmFileParser {
         return hl
     }
     
-    mutating func parseFlightHeaderAndSkip () -> EdmFlightHeader? {
+    mutating func parseFlightHeaderAndSkip (for id: Int) -> EdmFlightHeader? {
         
-        guard let flightheader = parseFlightHeader() else {
+        guard let flightheader = parseFlightHeader(for: id) else {
             return nil
         }
         
-        guard nextFlightIndex! < edmFileData.edmFileHeader!.flightInfos.count else {
-            trc(level: .error, string: "invalid flight index" + String(nextFlightIndex!))
+        guard let idx = edmFileData.edmFileHeader!.idx(for: id) else {
             return nil
         }
         
-        let size = edmFileData.edmFileHeader!.flightInfos[nextFlightIndex!].sizeBytes - 15
+        let size = edmFileData.edmFileHeader!.flightInfos[idx].sizeBytes - 15
         nextread += size
-        nextFlightIndex! += 1
-        if nextFlightIndex == edmFileData.edmFileHeader!.flightInfos.count {
-            complete = true
-        }
-        
+
         return flightheader
     }
     
-    mutating func parseFlightHeaderAndBody (for id: UInt) {
+    mutating func parseFlightHeaderAndBody (for id: Int) {
         var currentRec = EdmFlightDataRecord()
 
-        guard let flightheader = parseFlightHeader() else {
+        guard let flightheader = parseFlightHeader(for: id) else {
             self.invalid = true
             return
         }
@@ -369,9 +364,8 @@ struct EdmFileParser {
 //            return
         }
 
-        let idx = nextFlightIndex!
-        guard idx < edmFileData.edmFileHeader!.flightInfos.count else {
-            trc(level: .warn, string: "invalid flight index" + String(idx))
+        guard let idx =  edmFileData.edmFileHeader!.idx(for: id) else {
+            trc(level: .error, string: "parseFlightHeaderAndBody: no idx found for flight id \(id)")
             self.invalid = true
             return
         }
@@ -398,7 +392,11 @@ struct EdmFileParser {
         var interval_secs = TimeInterval(flightheader.interval_secs)
         
         while nextread + 3 <= nextflightread {
-            let rec = parseFlightDataRecord(rec: currentRec)
+            guard let rec = parseFlightDataRecord(rec: currentRec) else {
+                trc(level: .error, string: "parseFlightDataAndBody: parsing flight record failed")
+                self.invalid = true
+                return
+            }
             //rec.date = date
             
             var rc = rec.repeatCount
@@ -415,10 +413,12 @@ struct EdmFileParser {
             currentRec = rec
             currentRec.repeatCount = 0
             if currentRec.mark == 2 {
+                trc(level: .info, string: "parseFlightHeaderAndBody: mark is 2, timeinterval is 1 second")
                 interval_secs = 1
             }
             
             if currentRec.mark == 3 {
+                trc(level: .info, string: "parseFlightHeaderAndBody: mark is 3, timeinterval is \(flightheader.interval_secs) second")
                 interval_secs = TimeInterval(flightheader.interval_secs)
             }
             currentRec.date = currentRec.date!.advanced(by: interval_secs)
@@ -428,17 +428,29 @@ struct EdmFileParser {
 
         trc(level: .info, string: "nextread is \(nextread), next flight starts at \(nextflightread), size is  \(size) ")
 
-        
         nextread = nextflightread
-        nextFlightIndex! += 1
-        if nextFlightIndex == edmFileData.edmFileHeader!.flightInfos.count {
-            complete = true
-        }
-        
+
         return
     }
 
-    mutating func parseFlightHeader () -> EdmFlightHeader? {
+    mutating func parseFlightHeader (for id: Int) -> EdmFlightHeader? {
+        
+        guard let fh = edmFileData.edmFileHeader else {
+            return nil
+        }
+        
+        guard let idx = fh.idx(for: id) else {
+            trc(level: .error, string: "parseFlightHeader(for: \(id)): no flight found")
+            return nil
+        }
+
+        
+        nextread = fh.flightInfos[idx].offset
+        
+        return parseFlightHeader()
+    }
+    
+    mutating func parseFlightHeader ( ) -> EdmFlightHeader? {
         
         guard available > 15 else {
             return nil
@@ -453,11 +465,11 @@ struct EdmFileParser {
         let cs = self.data[nextread]
         nextread += 1
         
-        let fh = EdmFlightHeader(values: a, checksum: cs)
+        let flightheader = EdmFlightHeader(values: a, checksum: cs)
         
-        return fh
+        return flightheader
     }
-    
+
     mutating func parseFileHeaders () -> EdmFileHeader? {
         var edmFileHeader =  EdmFileHeader()
         var hl = EdmHeaderLine()
@@ -492,7 +504,6 @@ struct EdmFileParser {
             edmFileHeader.totalLen += flight.sizeBytes
         }
 
-        nextFlightIndex = 0
         return edmFileHeader
     }
 }

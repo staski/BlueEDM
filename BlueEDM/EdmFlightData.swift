@@ -341,8 +341,18 @@ struct EdmFlightData : Encodable {
         }
         
         var s = fh.stringValue()
-        s.append("duration: " + duration.description + ", fuel used: \(fuelUsed)")
+        s.append("duration: " + duration.hms() + ", fuel used: \(fuelUsed)")
         return s
     }
 }
 
+extension TimeInterval {
+    func hms () -> String {
+        var m = Int(self / 60.0)
+        let s = Int(self) - m * 60
+        let h = Int(Double(m) / 60.0)
+        m = m - h * 60
+        
+        return String(format: "%dh %dm %ds", h,m,s)
+    }
+}
