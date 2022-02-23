@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import CoreBluetooth
+import EdmParser
 
 struct DataTransferService {
     static let lintechServiceUUID = CBUUID(string: "F18D63AE-CADC-11E3-AACB-1A514932AC01")

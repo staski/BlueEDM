@@ -8,7 +8,7 @@ import Foundation
 import Combine
 import SwiftUI
 import UIKit
-
+import EdmParser
 
 extension View {
     func onLoad(perform action: (() -> Void)? = nil) -> some View {
