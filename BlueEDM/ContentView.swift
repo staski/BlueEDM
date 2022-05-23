@@ -15,14 +15,38 @@ extension View {
         modifier(ViewDidLoadModifier(perform: action))
     }
 }
+struct UpperRightCornerText : View {
+    var myText : Text
+    @EnvironmentObject var edm : EDMBluetoothManager
+    
+
+    var body : some View {
+        VStack
+        {
+            HStack
+            {
+                Spacer()
+                myText.foregroundColor(Color.red).padding(10)
+            }
+            Spacer()
+        }.border(Color.red, width: 2)
+    }
+}
 
 struct ContentView: View {
+    @EnvironmentObject var edm : EDMBluetoothManager
     
     var body : some View {
-        TabView {
-            MainView().tabItem { Label("Home", systemImage: "house.fill") }
-            SettingsView().tabItem { Label("Settings", systemImage: "gearshape.fill") }
-            FileListView().tabItem { Label("Files", systemImage: "doc.fill")}
+        ZStack
+        {
+            TabView {
+                MainView().tabItem { Label("Home", systemImage: "house.fill") }
+                SettingsView().tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                FileListView().tabItem { Label("Files", systemImage: "doc.fill")}
+            }
+            if edm.isRawMode == true {
+                UpperRightCornerText(myText: Text("Raw Mode"))
+            }
         }
     }
 }
@@ -84,6 +108,7 @@ struct FileView : View {
                 return " --- invalid --- "
             }
             myText.append(flightheader.stringValue())
+            myText.append("\n")
         }
 
         if edmFileParser.complete && edmFileParser.available > 0 {
@@ -166,6 +191,9 @@ struct RecordingView : View {
     }
     
     var value : Double {
+        if edm.isCapturing == false {
+            return 0.0
+        }
         if let h = edm.edmFileParser.edmFileData.edmFileHeader {
             let d = Double(edm.receivedData.count) / Double(h.totalLen)
             return d < 1.0 ? d : 1.0
@@ -192,7 +220,18 @@ struct RecordingView : View {
                         }
                         else {
                             self.edm.stopCapturing()
+                            let realDate = Date()
                             let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                            
+                            if edm.isRawMode == true {
+                                let realName = "raw_edm_data_" + realDate.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
+                                do {
+                                    try edm.receivedData.write(to: documentPath.appendingPathComponent(realName))
+                                } catch {
+                                    trc(level: .error, string: "error while trying to write raw file \(error)" )
+                                }
+                                edm.isRawMode = false
+                            }
                             /*
                              we save a hidden file with the download dateandtime in its name as found in the jpi file.
                              This is datetime is immutable and used to identify duplicates. On the other hand this datetime is
@@ -201,9 +240,8 @@ struct RecordingView : View {
                              datetime in the datefile itself can later be used to correct the flight dates (which are also relative
                              to the - potentially wrong - time setting of the EDM device
                              */
-                            if let fh = edm.edmFileParser.edmFileData.edmFileHeader {
+                            else if let fh = edm.edmFileParser.edmFileData.edmFileHeader {
                                 let helperDate = fh.date!
-                                let realDate = Date()
                                 
                                 let helperName = "." + String(fh.registration) + "_" + helperDate.toString(dateFormat: "YYYYMMdd_HHmm") + "_hlp.jpi"
                                 let realName = String(fh.registration) + "_" + realDate.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
@@ -284,14 +322,14 @@ struct SettingsView : View {
         if edm.deviceConnected {
             return edm.deviceName
         } else {
-            return ""
+            return "no device connected"
         }
     }
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Available BTLE RS232 Devices")) {
+                Section(header: Text("Available BLE RS232 Devices")) {
                     HStack(){
                         Text(toggleTitel)
                         Spacer()
@@ -306,22 +344,26 @@ struct SettingsView : View {
                                 Text("Rescan")
                                 Image(systemName: "arrow.triangle.2.circlepath").imageScale(.medium)
                             }
-                        })//.disabled(!edm.deviceConnected)
-
+                        })
                     }
                     if edm.deviceConnected == true {
                         VStack(alignment: .leading) {
                             Text("RSSI: " + String(edm.deviceRSSI) + " dB")
                         }
-                    }
-
-                }
+                    }                }
+                /*
                 Section(header: Text("Device Trace")){
                     Toggle("Activate Trace", isOn: $traceOn).onChange(of: traceOn){ _traceon in
                         self.redirectStdout()
                     }
                     TextEditor(text: $myText)
                 }
+                 */
+                Section(header: Text("Raw Mode")){
+                        Toggle("Enable Raw Mode", isOn: $edm.isRawMode).onChange(of: edm.isRawMode){ _rawmodeeon in
+                    }
+                }
+
             }
         }
     }

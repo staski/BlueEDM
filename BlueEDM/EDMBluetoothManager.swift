@@ -62,6 +62,7 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     @Published var isCapturing = false
     @Published var shareItem = false
     @Published var headerDataText = ""
+    @Published var isRawMode = false
     
     @Published var receivedData : Data = Data()
     
@@ -446,6 +447,11 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         
         receivedData.append(data)
         edmFileParser.data.append(data)
+        
+        if isRawMode == true {
+            trc(level: .info, string: "peripheral::didUpdateValueFor: raw mode active, don't parse EDM data")
+            return
+        }
 
         if edmFileParser.edmFileData.edmFileHeader == nil {
             if edmFileParser.available > 2000 {
@@ -483,6 +489,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             }
             nextIndex += 1
             headerDataText.append(flightheader.stringValue())
+            headerDataText.append("\n")
             
         }
         
