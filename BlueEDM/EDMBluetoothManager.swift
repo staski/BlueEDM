@@ -105,7 +105,12 @@ class EDMBluetoothManager : NSObject, ObservableObject{
         
         for f in directoryContents {
             let myid = getCreationDate(for: f)
-            let edmFile = EdmFile(fileURL: f, createdAt: myid)
+            guard let data = FileManager.default.contents(atPath: f.path) else {
+                trc(level: .error, string: " open file: -- invalid data --- ")
+                return
+            }
+            let p = EdmFileParser(data: data)
+            let edmFile = EdmFile(edmFileParser: p, fileURL: f, createdAt: myid)
             edmFiles.append(edmFile)
         }
         edmFiles.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})

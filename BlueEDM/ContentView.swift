@@ -15,6 +15,7 @@ extension View {
         modifier(ViewDidLoadModifier(perform: action))
     }
 }
+
 struct UpperRightCornerText : View {
     var myText : Text
     @EnvironmentObject var edm : EDMBluetoothManager
@@ -51,87 +52,6 @@ struct ContentView: View {
     }
 }
 
-struct FileListView : View {
-    @EnvironmentObject var edm : EDMBluetoothManager
-
-    var body: some View {
-        NavigationView {
-            List(edm.edmFiles) { file in
-                NavigationLink(file.fileURL.lastPathComponent, destination: FileView(filename: file.fileURL))
-            }.navigationTitle("EDM Files")
-        }
-    }
-}
-
-struct FileView : View {
-    @State private var shareItem = false
-    
-    var filename : URL
-    
-    var text : String {
-        var edmFileParser = EdmFileParser()
-        var myText : String = ""
-
-        guard let data = FileManager.default.contents(atPath: filename.path) else {
-            return " -- invalid data --- "
-        }
-        
-        edmFileParser.data = data
-        // the parsed header file
-        if edmFileParser.edmFileData.edmFileHeader == nil {
-            if edmFileParser.available > 2000 {
-
-                guard let header = edmFileParser.parseFileHeaders() else {
-                    if !edmFileParser.invalid {
-                        myText.append("received invalid data\n")
-                    }
-                    edmFileParser.invalid = true
-                    return " -- invalid data --- "
-                }
-                edmFileParser.edmFileData.edmFileHeader = header
-                myText.append(header.stringValue(includeFlights: false))
-            }
-        }
-        
-        guard let header = edmFileParser.edmFileData.edmFileHeader else {
-            return " --- invalid --- "
-        }
-                
-        for i in 0..<header.flightInfos.count
-        {
-            if edmFileParser.invalid == true {
-                return " --- invalid --- "
-            }
-            
-            let id = header.flightInfos[i].id
-            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip(for: id) else {
-                return " --- invalid --- "
-            }
-            myText.append(flightheader.stringValue())
-            myText.append("\n")
-        }
-
-        if edmFileParser.complete && edmFileParser.available > 0 {
-            print("Data complete: " + String(edmFileParser.available) + " Bytes excess\n")
-        }
-
-        return myText
-    }
-    
-    var body: some View {
-            VStack
-            {
-                ScrollView {
-                    Text(text).id(10)
-                }.navigationBarItems(trailing: Button(action: { shareItem.toggle()})
-                    {
-                        Image(systemName: "square.and.arrow.up").imageScale(.large)
-                    }.sheet(isPresented: $shareItem, content: {
-                        ActivityViewController(url: filename)
-                    })).navigationBarTitle(filename.lastPathComponent).navigationBarTitleDisplayMode(.inline)
-            }
-    }
-}
 
 struct MainView : View {
     @EnvironmentObject var edm : EDMBluetoothManager

@@ -6,41 +6,190 @@
 //
 
 import SwiftUI
+import EdmParser
 
 struct EdmFile : Identifiable {
     var id: Date { createdAt }
     
+    let edmFileParser : EdmFileParser
     let fileURL: URL
     let createdAt: Date
 }
 
-struct EdmFileRow: View {
-    
-    var fileURL: URL
-    
+extension EdmFlightHeader : Identifiable {
+}
+
+struct NavigationLazyView<Content: View>: View {
+    let build: () -> Content
+    init(_ build: @autoclosure @escaping () -> Content) {
+        self.build = build
+    }
+    var body: Content {
+        build()
+    }
+}
+
+struct FileListView : View {
+    @EnvironmentObject var edm : EDMBluetoothManager
+
     var body: some View {
-        HStack {
-            Text("\(fileURL.lastPathComponent)")
-            Spacer()
+        NavigationView {
+            List(edm.edmFiles) { file in
+                NavigationLink(file.fileURL.lastPathComponent, destination: NavigationLazyView(FileView(file.fileURL)))
+            }.navigationTitle("EDM Files")
         }
     }
 }
 
-struct EdmFileList: View {
-    @EnvironmentObject var edm : EDMBluetoothManager
-    
- 
-    var body: some View {
-        List {
-              ForEach(edm.edmFiles, id: \.createdAt) { file in
-                  EdmFileRow(fileURL: file.fileURL)
-              }
-          }
-    }   
-}
+typealias EdmFilename = String
 
-struct EdmFileList_Previews: PreviewProvider {
-    static var previews: some View {
-        EdmFileList()
+extension EdmFilename {
+    func getDownloadDate() -> Date? {
+        if #available(iOS 16.0, *) {
+            let regex = /_(\d+_\d+).jpi/
+            if let match = self.firstMatch(of: regex){
+                let datestring = String(match.1)
+                let dateFormatter = DateFormatter()
+                dateFormatter.locale = Locale(identifier: "en_US")
+                dateFormatter.dateFormat = "YYYYMMdd_HHmm"
+                if let dt = dateFormatter.date(from: datestring){
+                    return dt
+                }
+            }
+        }
+        return nil
+    }
+    
+    func getShadowFilename() -> String? {
+        if #available(iOS 16.0, *) {
+            let regex = /(.*)_(\d+_\d+).jpi/
+            if let match = self.firstMatch(of: regex){
+                let first = String(match.1)
+                let datestring = String(match.2)
+                return "." + first + "_" + datestring + "_hlp.jpi"
+            }
+        }
+        return nil
     }
 }
+
+extension Date {
+    func toString() -> String {
+        let df = DateFormatter()
+        df.dateStyle = .short
+        df.timeStyle = .short
+        return df.string(from: self)
+    }
+}
+
+struct FileView : View {
+    @State private var shareItem = false
+    
+    var fileurl : URL
+    
+    var d : Data
+    var p : EdmFileParser
+    var h : EdmFileHeader?
+    var fh : [EdmFlightHeader]
+    var c : Int
+    var filename : String
+    var shadowname : String = "NONE"
+    //var downloaddate : Date
+    var savedatdate : Date?
+    
+    init (_ url: URL) {
+        fileurl = url
+        filename = fileurl.lastPathComponent
+        savedatdate = self.filename.getDownloadDate()
+        d = FileManager.default.contents(atPath: fileurl.path) ?? Data()
+        p = EdmFileParser(data: d)
+        h = p.parseFileHeaders()
+        fh = [EdmFlightHeader]()
+        c = h != nil ? h!.flightInfos.count : 0
+
+        if h == nil {
+            fh = [EdmFlightHeader]()
+            return
+        }
+
+        p.edmFileData.edmFileHeader = h
+        trc(level: .error, string: "Init FileView: \(h!.flightInfos.count)")
+
+        for i in 0..<c
+        {
+            if p.invalid == true {
+                fh = [EdmFlightHeader]()
+                return
+            }
+            let id = h!.flightInfos[i].id
+            trc(level: .error, string: "Init FileView: \(id)")
+
+            guard let flightheader = p.parseFlightHeaderAndSkip(for: id) else {
+                fh = [EdmFlightHeader]()
+                return
+            }
+
+            fh.append(flightheader)
+        }
+        
+        let helperDate = h!.date!
+        shadowname = "." + String(h!.registration) + "_" + helperDate.toString(dateFormat: "YYYYMMdd_HHmm") + "_hlp.jpi"
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let tmpurl = documentPath.appendingPathComponent(shadowname)
+        if !FileManager.default.fileExists(atPath: tmpurl.path) {
+            shadowname = " NONE "
+        }
+    }
+
+    var text : String {
+        var myText : String = ""
+
+        guard let header = h  else {
+            return " -- invalid data --- "
+        }
+
+        myText.append(header.config.features.stringValue())
+        myText.append(header.alarms.stringValue())
+        myText.append(header.ff.stringValue())
+        if p.complete && p.available > 0 {
+            print("Data complete: " + String(p.available) + " Bytes excess\n")
+        }
+
+        return myText
+    }
+    
+    @State private var topExpanded: Bool = false
+
+    var body: some View {
+            VStack
+            {
+                let registration = h?.registration ?? ""
+                List {
+                    Section(header: Text("File infos")){
+                        EdmFileListItem(name: "Filename", value: self.filename)
+                        EdmFileListItem(name: "Size", value: String(Int((h?.totalLen ?? 0)/1024)) + " KB")
+                        EdmFileListItem(name: "Download date", value: (h?.date?.toString() ?? ""))
+                        EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or hgher")
+                    }
+                    Section(header: Text("Device infos"), footer:
+                                DisclosureGroup("Details", isExpanded: $topExpanded){ Text(text) })
+                    {
+                        EdmFileListItem(name: "Registration", value: registration)
+                        EdmFileListItem(name: "Model", value: "EDM" + String( h!.config.modelNumber))
+                        EdmFileListItem(name: "SW-Version", value: String(h!.config.version))
+                    }
+                    Section(header: Text(String(c) + " Flights")){
+                        ForEach(fh) {
+                            EdmFileListItem(name: "ID " + String($0.id), value: $0.date?.toString() ?? "")
+                        }
+                    }
+                }.navigationBarItems(trailing: Button(action: { shareItem.toggle()})
+                                     {
+                    Image(systemName: "square.and.arrow.up").imageScale(.large)
+                }.sheet(isPresented: $shareItem, content: {
+                    ActivityViewController(url: fileurl)
+                })).navigationBarTitle("JPI File").navigationBarTitleDisplayMode(.inline)
+            }
+    }
+}
+
