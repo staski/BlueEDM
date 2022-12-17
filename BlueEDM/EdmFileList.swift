@@ -19,6 +19,12 @@ struct EdmFile : Identifiable {
 extension EdmFlightHeader : Identifiable {
 }
 
+extension String : Identifiable {
+    public var id: Int {
+        return 0
+    }
+}
+
 struct NavigationLazyView<Content: View>: View {
     let build: () -> Content
     init(_ build: @autoclosure @escaping () -> Content) {
@@ -169,7 +175,7 @@ struct FileView : View {
                         EdmFileListItem(name: "Filename", value: self.filename)
                         EdmFileListItem(name: "Size", value: String(Int((h?.totalLen ?? 0)/1024)) + " KB")
                         EdmFileListItem(name: "Download date", value: (h?.date?.toString() ?? ""))
-                        EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or hgher")
+                        EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or higher")
                     }
                     Section(header: Text("Device infos"), footer:
                                 DisclosureGroup("Details", isExpanded: $topExpanded){ Text(text) })
@@ -179,8 +185,12 @@ struct FileView : View {
                         EdmFileListItem(name: "SW-Version", value: String(h!.config.version))
                     }
                     Section(header: Text(String(c) + " Flights")){
-                        ForEach(fh) {
-                            EdmFileListItem(name: "ID " + String($0.id), value: $0.date?.toString() ?? "")
+                        ForEach(fh) { flight in
+                            NavigationLink {
+                                NavigationLazyView(EdmFlightDetailView(data: d,id: Int(flight.id)))
+                            } label: {
+                                EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
+                            }
                         }
                     }
                 }.navigationBarItems(trailing: Button(action: { shareItem.toggle()})

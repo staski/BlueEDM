@@ -12,7 +12,7 @@ struct EdmFileListItem: View {
     let value : String
     var body: some View {
         HStack {
-            Text(name + ": ")
+            Text(name)
             Spacer()
             Text(value)
         }
