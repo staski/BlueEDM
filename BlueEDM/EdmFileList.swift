@@ -35,6 +35,16 @@ struct NavigationLazyView<Content: View>: View {
     }
 }
 
+struct EdmErrorView : View {
+    var text : String
+    var body: some View {
+        VStack(alignment: .center){
+            HStack(alignment: .center){
+                Text(text).font(.system(size: 24, weight: .bold))
+            }
+        }
+    }
+}
 struct FileListView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
 
@@ -100,7 +110,6 @@ struct FileView : View {
     var c : Int
     var filename : String
     var shadowname : String = "NONE"
-    //var downloaddate : Date
     var savedatdate : Date?
     
     init (_ url: URL) {
@@ -125,6 +134,7 @@ struct FileView : View {
         {
             if p.invalid == true {
                 fh = [EdmFlightHeader]()
+                h = nil
                 return
             }
             let id = h!.flightInfos[i].id
@@ -132,6 +142,7 @@ struct FileView : View {
 
             guard let flightheader = p.parseFlightHeaderAndSkip(for: id) else {
                 fh = [EdmFlightHeader]()
+                h = nil
                 return
             }
 
@@ -167,38 +178,42 @@ struct FileView : View {
     @State private var topExpanded: Bool = false
 
     var body: some View {
-            VStack
-            {
-                let registration = h?.registration ?? ""
-                List {
-                    Section(header: Text("File infos")){
-                        EdmFileListItem(name: "Filename", value: self.filename)
-                        EdmFileListItem(name: "Size", value: String(Int((h?.totalLen ?? 0)/1024)) + " KB")
-                        EdmFileListItem(name: "Download date", value: (h?.date?.toString() ?? ""))
-                        EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or higher")
-                    }
-                    Section(header: Text("Device infos"), footer:
-                                DisclosureGroup("Details", isExpanded: $topExpanded){ Text(text) })
-                    {
-                        EdmFileListItem(name: "Registration", value: registration)
-                        EdmFileListItem(name: "Model", value: "EDM" + String( h!.config.modelNumber))
-                        EdmFileListItem(name: "SW-Version", value: String(h!.config.version))
-                    }
-                    Section(header: Text(String(c) + " Flights")){
-                        ForEach(fh) { flight in
-                            NavigationLink {
-                                NavigationLazyView(EdmFlightDetailView(data: d,id: Int(flight.id)))
-                            } label: {
-                                EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
+            if h == nil {
+                EdmErrorView(text: "INVALID JPI FILE")
+            } else {
+                VStack
+                {
+                    let registration = h!.registration
+                    List {
+                        Section(header: Text("File infos")){
+                            EdmFileListItem(name: "Filename", value: self.filename)
+                            EdmFileListItem(name: "Size", value: String(Int((h!.totalLen)/1024)) + " KB")
+                            EdmFileListItem(name: "Download date", value: (h!.date?.toString() ?? ""))
+                            EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or higher")
+                        }
+                        Section(header: Text("Device infos"), footer:
+                                    DisclosureGroup("Details", isExpanded: $topExpanded){ Text(text) })
+                        {
+                            EdmFileListItem(name: "Registration", value: registration)
+                            EdmFileListItem(name: "Model", value: "EDM" + String( h!.config.modelNumber))
+                            EdmFileListItem(name: "SW-Version", value: String(h!.config.version))
+                        }
+                        Section(header: Text(String(c) + " Flights")){
+                            ForEach(fh) { flight in
+                                NavigationLink {
+                                    NavigationLazyView(EdmFlightDetailView(data: d,id: Int(flight.id)))
+                                } label: {
+                                    EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
+                                }
                             }
                         }
-                    }
-                }.navigationBarItems(trailing: Button(action: { shareItem.toggle()})
-                                     {
-                    Image(systemName: "square.and.arrow.up").imageScale(.large)
-                }.sheet(isPresented: $shareItem, content: {
-                    ActivityViewController(url: fileurl)
-                })).navigationBarTitle("JPI File").navigationBarTitleDisplayMode(.inline)
+                    }.navigationBarItems(trailing: Button(action: { shareItem.toggle()})
+                                         {
+                        Image(systemName: "square.and.arrow.up").imageScale(.large)
+                    }.sheet(isPresented: $shareItem, content: {
+                        ActivityViewController(url: fileurl)
+                    })).navigationBarTitle("JPI File").navigationBarTitleDisplayMode(.inline)
+                }
             }
     }
 }
