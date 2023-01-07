@@ -20,7 +20,7 @@ struct BlueEDMApp: App {
                 UIApplication.shared.isIdleTimerDisabled = true
             }
             if phase == .background {
-                
+                UIApplication.shared.isIdleTimerDisabled = false
             }
         }
     }

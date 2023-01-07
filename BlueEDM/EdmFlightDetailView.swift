@@ -27,7 +27,7 @@ class EdmFlightDetails : NSObject {
     init?(data: Data, id: Int) {
         p = EdmFileParser(data: data)
         guard let header = p.parseFileHeaders() else {
-            trc(level: .error, string: "EdmFlightDetails init: error parsing file header")
+            trc(level: .warn, string: "EdmFlightDetails init: error parsing file header")
             return nil
         }
         h = header
@@ -73,6 +73,74 @@ class EdmFlightDetails : NSObject {
             return ffused_string
         default:
             return "°F"
+        }
+    }
+}
+
+struct SharedDetailActivityController : UIViewControllerRepresentable {
+
+    var e : EdmFlightDetailsJSON
+    let applicationActivities: [UIActivity]? = nil
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        
+        let controller = UIActivityViewController(
+            activityItems: [e],
+            applicationActivities: nil)
+        
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+    }
+}
+
+class EdmFlightDetailsJSON : UIActivityItemProvider {
+    let url : URL
+    let shareUrl : URL
+    let id : Int
+    
+    init(url: URL, id: Int){
+        self.url  = url
+        var tmpname = url.deletingPathExtension().lastPathComponent
+        let appendit = "_" + String(id) + ".json"
+        tmpname.append(appendit)
+
+        self.shareUrl = URL(fileURLWithPath: NSTemporaryDirectory() + tmpname)
+        self.id = id
+
+        trc(level: .info, string: "EdmFlightDetailsShare: temp is \(shareUrl.path)")
+        trc(level: .info, string: "EdmFlightDetailsShare: orig is \(url.path)")
+
+        super.init(placeholderItem: shareUrl)
+    }
+    
+    override var item: Any {
+        get {
+            guard let  d = FileManager.default.contents(atPath: url.path) else {
+                trc(level: .error, string: "EdmFlightDetailsShared.item: no data found at \(url.path)")
+                return shareUrl
+            }
+            guard let e = EdmFlightDetails(data: d, id: id) else {
+                trc(level: .error, string: "EdmFlightDetailsShared.item: invalid file \(url.path)")
+                return shareUrl
+            }
+            let encoder = JSONEncoder()
+            let formatter = DateFormatter()
+
+            formatter.dateStyle = .short
+            formatter.timeStyle = .medium
+            encoder.dateEncodingStrategy = .formatted(formatter)
+            encoder.outputFormatting = .prettyPrinted
+
+            do {
+                let data = try encoder.encode(e.fd)
+                try data.write(to: shareUrl)
+            } catch {
+                trc(level: .error, string: "EdmFlightDetailsShared.item: encoding error \(error)")
+            }
+            
+            return shareUrl
         }
     }
 }
@@ -233,7 +301,7 @@ struct EdmFlightAlarmView : View {
         
         alarms = EdmFlightAlarm(p: peakValue, d: edmFlightDetail)
         if alarms == nil {
-            trc(level: .error, string: "EdmFlightAlarmView: no alarm for \(peakValue.longname)")
+            trc(level: .info, string: "EdmFlightAlarmView: no alarm for \(peakValue.longname)")
             return
         }
 
@@ -280,7 +348,7 @@ struct EdmFlightDetailView: View {
         
         details = EdmFlightDetails(data: data, id: id)
         guard let d = details else {
-            trc(level: .error, string: "EdmFlightDetailView: No EdmFlightDetails available")
+            trc(level: .info, string: "EdmFlightDetailView: No EdmFlightDetails available")
             return
         }
                 

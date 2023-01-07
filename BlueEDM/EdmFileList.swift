@@ -45,14 +45,29 @@ struct EdmErrorView : View {
         }
     }
 }
+
 struct FileListView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
 
     var body: some View {
         NavigationView {
-            List(edm.edmFiles) { file in
-                NavigationLink(file.fileURL.lastPathComponent, destination: NavigationLazyView(FileView(file.fileURL)))
-            }.navigationTitle("EDM Files")
+            if #available(iOS 15.0, *) {
+                List(edm.edmFiles) { file in
+                    NavigationLink(file.fileURL.lastPathComponent, destination: NavigationLazyView(FileView(file.fileURL))).swipeActions(allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            edm.deleteFile(file.fileURL)
+                            edm.fetchEdmFiles()
+                        } label: {
+                            Label("Delete \(file.fileURL.path)", systemImage: "trash.fill")
+                        }
+                    }
+                }.navigationTitle("EDM Files")
+            } else {
+                // Fallback on earlier versions
+                List(edm.edmFiles) { file in
+                    NavigationLink(file.fileURL.lastPathComponent, destination: NavigationLazyView(FileView(file.fileURL)))
+                }.navigationTitle("EDM Files")
+            }
         }
     }
 }
@@ -176,7 +191,7 @@ struct FileView : View {
     }
     
     @State private var topExpanded: Bool = false
-
+    @State private var showSharing: Bool = false
     var body: some View {
             if h == nil {
                 EdmErrorView(text: "INVALID JPI FILE")
@@ -189,7 +204,11 @@ struct FileView : View {
                             EdmFileListItem(name: "Filename", value: self.filename)
                             EdmFileListItem(name: "Size", value: String(Int((h!.totalLen)/1024)) + " KB")
                             EdmFileListItem(name: "Download date", value: (h!.date?.toString() ?? ""))
-                            EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or higher")
+                            if #available(iOS 16.0, *) {
+                                EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "no shadow file available")
+                            } else {
+                                EdmFileListItem(name: "Saved at", value: savedatdate?.toString() ?? "available with iOS16 or higher")
+                            }
                         }
                         Section(header: Text("Device infos"), footer:
                                     DisclosureGroup("Details", isExpanded: $topExpanded){ Text(text) })
@@ -200,20 +219,35 @@ struct FileView : View {
                         }
                         Section(header: Text(String(c) + " Flights")){
                             ForEach(fh) { flight in
-                                NavigationLink {
-                                    NavigationLazyView(EdmFlightDetailView(data: d,id: Int(flight.id)))
-                                } label: {
-                                    EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
+                                if #available(iOS 15.0, *) {
+                                    NavigationLink {
+                                        NavigationLazyView(EdmFlightDetailView(data: d,id: Int(flight.id)))
+                                    } label: {
+                                        EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
+                                    }.swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                        Button(action:  {
+                                            showSharing.toggle()
+                                        }){
+                                            Label("Share", systemImage: "square.and.arrow.up.fill")
+                                        }
+                                    }.tint(.blue).sheet(isPresented: $showSharing) {
+                                        SharedDetailActivityController(e: EdmFlightDetailsJSON(url: fileurl, id: Int(flight.id)))
+                                    }
+                                } else {
+                                    NavigationLink {
+                                        NavigationLazyView(EdmFlightDetailView(data: d,id: Int(flight.id)))
+                                    } label: {
+                                        EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
+                                    }
                                 }
                             }
                         }
-                    }.navigationBarItems(trailing: Button(action: { shareItem.toggle()})
-                                         {
-                        Image(systemName: "square.and.arrow.up").imageScale(.large)
-                    }.sheet(isPresented: $shareItem, content: {
-                        ActivityViewController(url: fileurl)
-                    })).navigationBarTitle("JPI File").navigationBarTitleDisplayMode(.inline)
-                }
+                    }.navigationBarItems(trailing: Button(action: { shareItem.toggle()}){
+                            Image(systemName: "square.and.arrow.up").imageScale(.large)
+                        }.sheet(isPresented: $shareItem, content: {
+                            ActivityViewController(url: fileurl)
+                        })).navigationBarTitle("JPI File").navigationBarTitleDisplayMode(.inline)
+                    }
             }
     }
 }

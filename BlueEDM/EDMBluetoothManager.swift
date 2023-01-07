@@ -64,10 +64,9 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     @Published var headerDataText = ""
     @Published var isRawMode = false
     
-    @Published var receivedData : Data = Data()
     
     // the saved files 1:1
-    var edmFiles = [EdmFile]()
+    @Published var edmFiles = [EdmFile]()
     
     var edmFileParser : EdmFileParser = EdmFileParser()
     // index into the array of all flights indicating the next not yet parsed one
@@ -87,7 +86,6 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     }
     
     func startCapturing () {
-        receivedData = Data()
         edmFileParser = EdmFileParser()
         isCapturing = true
     }
@@ -106,8 +104,8 @@ class EDMBluetoothManager : NSObject, ObservableObject{
         for f in directoryContents {
             let myid = getCreationDate(for: f)
             guard let data = FileManager.default.contents(atPath: f.path) else {
-                trc(level: .error, string: " open file: -- invalid data --- ")
-                return
+                trc(level: .error, string: " open file: -- invalid data --- \(f.path)")
+                continue
             }
             let p = EdmFileParser(data: data)
             let edmFile = EdmFile(edmFileParser: p, fileURL: f, createdAt: myid)
@@ -450,7 +448,6 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
         
-        receivedData.append(data)
         edmFileParser.data.append(data)
         
         if isRawMode == true {
@@ -502,6 +499,138 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         trc(level: .all, string: "nextIndex: \(nextIndex), count: \(header.flightInfos.count), available: \(edmFileParser.available)")
         if (nextIndex >= header.flightInfos.count) && (edmFileParser.available > 0) {
             trc(level: .info,string: "Data complete: " + String(edmFileParser.available) + " Bytes excess\n")
+        }
+    }
+    
+    func captureFileAndValidate (_ url: URL) -> Bool {
+        let d = FileManager.default.contents(atPath: url.path) ?? Data()
+        edmFileParser = EdmFileParser(data: d)
+        var h = edmFileParser.parseFileHeaders()
+        var fh = [EdmFlightHeader]()
+
+        if h == nil {
+            headerDataText.append("\(url.lastPathComponent): ")
+            headerDataText.append("invalid data\n")
+            headerDataText.append("File not saved\n")
+            return false
+        }
+
+        let c = h!.flightInfos.count
+
+        headerDataText.append(h!.stringValue(includeFlights: false))
+        edmFileParser.edmFileData.edmFileHeader = h
+        
+        trc(level: .info, string: "Init FileView: \(h!.flightInfos.count)")
+
+        for i in 0..<c
+        {
+            if edmFileParser.invalid == true {
+                h = nil
+                headerDataText.append("received invalid data\n")
+                return false
+            }
+            let id = h!.flightInfos[i].id
+            trc(level: .info, string: "Init FileView: \(id)")
+
+            guard let flightheader = edmFileParser.parseFlightHeaderAndSkip(for: id) else {
+                headerDataText.append("received invalid data\n")
+                h = nil
+                return false
+            }
+            
+            headerDataText.append(flightheader.stringValue())
+            headerDataText.append("\n")
+            
+            fh.append(flightheader)
+        }
+        
+        return true
+    }
+    
+    func deleteFile(_ url: URL){
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let filename = url.lastPathComponent
+        if let shadowfilename = filename.getShadowFilename() {
+            let helperpathname = documentPath.appendingPathComponent(shadowfilename)
+            if FileManager.default.fileExists(atPath: helperpathname.path){
+                do {
+                    try FileManager.default.trashItem(at: helperpathname, resultingItemURL: nil)
+                    trc(level: .info, string: "deleteFile: helper file \(helperpathname.path) deleted")
+                } catch {
+                    trc(level: .error, string: "deleteFile: failed deleting helper file \(helperpathname.path), error: \(error)")
+                }
+            }
+        }
+        
+        do {
+            try FileManager.default.removeItem(at: url) 
+            trc(level: .info, string: "deleteFile: JPI file \(url.path) deleted")
+        } catch {
+            trc(level: .error, string: "deleteFile: failed deleting JPI file \(url.path), error \(error)")
+        }
+    }
+    
+    /* url is the name of the file captured e.g. via airdrop save those files as they come */
+    /* otherwise the filename is retrieved from the parser, path is always our document directory */
+    func saveCapturedFile (_ url: URL? = nil) {
+        let realDate = Date()
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        
+        if nil != url {
+            do {
+                try edmFileParser.data.write(to: documentPath.appendingPathComponent(url!.lastPathComponent))
+                headerDataText.append("written: " + url!.lastPathComponent)
+            } catch {
+                headerDataText.append("invalid data - not saved\n")
+                trc(level: .error, string: "error while trying to write raw file \(error)" )
+            }
+            self.fetchEdmFiles()
+            return
+        }
+        if isRawMode == true {
+            let realName = "raw_edm_data_" + realDate.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
+            do {
+                try edmFileParser.data.write(to: documentPath.appendingPathComponent(realName))
+            } catch {
+                trc(level: .error, string: "error while trying to write raw file \(error)" )
+            }
+            isRawMode = false
+        }
+        /*
+         we save a hidden file with the download dateandtime in its name as found in the jpi file.
+         This is datetime is immutable and used to identify duplicates. On the other hand this datetime is
+         relative to to the time set on the EDM device, which might be wrong. Therefore we store the actual
+         data file with the "real" datetime in its name. The difference between the datetime in the name and the
+         datetime in the datefile itself can later be used to correct the flight dates (which are also relative
+         to the - potentially wrong - time setting of the EDM device
+         */
+    
+        else if let fh = edmFileParser.edmFileData.edmFileHeader {
+            let helperDate = fh.date!
+        
+            let helperName = "." + String(fh.registration) + "_" + helperDate.toString(dateFormat: "YYYYMMdd_HHmm") + "_hlp.jpi"
+            let realName = String(fh.registration) + "_" + realDate.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
+        
+            let edmHelperName = documentPath.appendingPathComponent(helperName)
+            let edmRealName = documentPath.appendingPathComponent(realName)
+            do {
+                if !FileManager.default.fileExists(atPath: edmHelperName.path) {
+                    try edmFileParser.data.write(to: edmRealName)
+                    try Data().write(to: edmHelperName)
+                    headerDataText.append("written: " + realName)
+                    trc(level: .info, string: "written: " + realName)
+                } else {
+                    headerDataText.append("file already exists: " + helperName)
+                    trc(level: .error, string: "file already exists: " + helperName)
+                }
+            } catch {
+                trc(level: .error, string: "error while trying to write \(error)")
+            }
+        } else {
+            if edmFileParser.data.count != 0 {
+                headerDataText.append("invalid data - not saved\n")
+                trc(level: .error, string: "invalid data - not saved")
+            }
         }
     }
     

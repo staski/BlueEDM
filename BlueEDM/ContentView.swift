@@ -36,17 +36,55 @@ struct UpperRightCornerText : View {
 
 struct ContentView: View {
     @EnvironmentObject var edm : EDMBluetoothManager
-    
+    @State private var tabSelection = 1
+    @State private var notAllowed = false
+
+    let alertTitle: String = "Still capturing"
+
     var body : some View {
-        ZStack
-        {
-            TabView {
-                MainView().tabItem { Label("Home", systemImage: "house.fill") }
-                SettingsView().tabItem { Label("Settings", systemImage: "gearshape.fill") }
-                FileListView().tabItem { Label("Files", systemImage: "doc.fill")}
+        if #available(iOS 15.0, *) {
+            ZStack
+            {
+                TabView (selection: $tabSelection) {
+                    MainView().tabItem { Label("Home", systemImage: "house.fill") }.tag(1)
+                    SettingsView().tabItem { Label("Settings", systemImage: "gearshape.fill") }.tag(2)
+                    FileListView().tabItem { Label("Files", systemImage: "doc.fill")}.tag(3)
+                }
+                if edm.isRawMode == true {
+                    UpperRightCornerText(myText: Text("Raw Mode"))
+                }
+            }.onOpenURL { url in
+                if edm.isCapturing == true {
+                    notAllowed = true
+                }
+                tabSelection = 1
+                if true == edm.captureFileAndValidate(url){
+                    edm.saveCapturedFile(url)
+                    edm.fetchEdmFiles()
+                }
+            }.alert(alertTitle, isPresented: $notAllowed) {
+                Button("OK"){}
             }
-            if edm.isRawMode == true {
-                UpperRightCornerText(myText: Text("Raw Mode"))
+        } else {
+            ZStack
+            {
+                TabView (selection: $tabSelection) {
+                    MainView().tabItem { Label("Home", systemImage: "house.fill") }.tag(1)
+                    SettingsView().tabItem { Label("Settings", systemImage: "gearshape.fill") }.tag(2)
+                    FileListView().tabItem { Label("Files", systemImage: "doc.fill")}.tag(3)
+                }
+                if edm.isRawMode == true {
+                    UpperRightCornerText(myText: Text("Raw Mode"))
+                }
+            }.onOpenURL { url in
+                if edm.isCapturing == true {
+                    notAllowed = true
+                }
+                tabSelection = 1
+                if true == edm.captureFileAndValidate(url){
+                    edm.saveCapturedFile(url)
+                    edm.fetchEdmFiles()
+                }
             }
         }
     }
@@ -82,7 +120,7 @@ struct InfoView : View {
     }
     
     var rtext : String {
-        return edm.receivedData.count != 0 ? String(format: "(%d bytes received)", edm.receivedData.count) : String("--")
+        return edm.edmFileParser.data.count != 0 ? String(format: "(%d bytes received)", edm.edmFileParser.data.count) : String("--")
     }
     
     var c1 : Color {
@@ -107,7 +145,7 @@ struct RecordingView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
 
     var labelText : String {
-        edm.deviceConnected ? (edm.isCapturing ? String("Stop Capturing") : String("Start Capturing")) : ""
+        edm.deviceConnected ? (edm.isCapturing ? String("Stop Capturing") : String("Start Capturing")) : " " //mind the space (it helps alignment)
     }
     
     var value : Double {
@@ -115,7 +153,7 @@ struct RecordingView : View {
             return 0.0
         }
         if let h = edm.edmFileParser.edmFileData.edmFileHeader {
-            let d = Double(edm.receivedData.count) / Double(h.totalLen)
+            let d = Double(edm.edmFileParser.data.count) / Double(h.totalLen)
             return d < 1.0 ? d : 1.0
         }
         else {
@@ -146,7 +184,7 @@ struct RecordingView : View {
                             if edm.isRawMode == true {
                                 let realName = "raw_edm_data_" + realDate.toString(dateFormat: "YYYYMMdd_HHmm") + ".jpi"
                                 do {
-                                    try edm.receivedData.write(to: documentPath.appendingPathComponent(realName))
+                                    try edm.edmFileParser.data.write(to: documentPath.appendingPathComponent(realName))
                                 } catch {
                                     trc(level: .error, string: "error while trying to write raw file \(error)" )
                                 }
@@ -170,7 +208,7 @@ struct RecordingView : View {
                                 let edmRealName = documentPath.appendingPathComponent(realName)
                                 do {
                                     if !FileManager.default.fileExists(atPath: edmHelperName.path) {
-                                        try edm.receivedData.write(to: edmRealName)
+                                        try edm.edmFileParser.data.write(to: edmRealName)
                                         try Data().write(to: edmHelperName)
                                         edm.headerDataText.append("written: " + realName)
                                         print ("written: " + realName)
@@ -182,7 +220,7 @@ struct RecordingView : View {
                                     print ("error while trying to write \(error)")
                                 }
                             } else {
-                                if edm.receivedData.count != 0 {
+                                if edm.edmFileParser.data.count != 0 {
                                     edm.headerDataText.append("invalid data - not saved\n")
                                     print ("invalid data - not saved")
                                 }
