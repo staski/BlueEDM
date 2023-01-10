@@ -18,6 +18,35 @@ extension TimeInterval {
     }
 }
 
+class EdmFileDetails : NSObject {
+    var p : EdmFileParser
+    
+    init?(data: Data) {
+        p = EdmFileParser(data: data)
+        guard let header = p.parseFileHeaders() else {
+            trc(level: .warn, string: "EdmFlightDetails init: error parsing file header")
+            return nil
+        }
+        
+        p.edmFileData.edmFileHeader = header
+
+        for i in 0..<header.flightInfos.count
+        {
+            if p.complete == true {
+                trc(level: .error, string: "EdmFlightDetails init: complete before parsing flight \(i)")
+                return nil
+            }
+            if p.invalid == true {
+                trc(level: .error, string: "EdmFlightDetails init: error parsing flight \(i)")
+                return nil
+            }
+            
+            let id = header.flightInfos[i].id
+            p.parseFlightHeaderAndBody(for: id)
+        }
+    }
+}
+
 class EdmFlightDetails : NSObject {
     var p : EdmFileParser
     var h : EdmFileHeader
@@ -77,21 +106,50 @@ class EdmFlightDetails : NSObject {
     }
 }
 
-struct SharedDetailActivityController : UIViewControllerRepresentable {
-
-    var e : EdmFlightDetailsJSON
-    let applicationActivities: [UIActivity]? = nil
+class EdmFileDetailsJSON : UIActivityItemProvider {
+    let url : URL
+    let shareUrl : URL
     
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        
-        let controller = UIActivityViewController(
-            activityItems: [e],
-            applicationActivities: nil)
-        
-        return controller
+    init(url: URL){
+        self.url  = url
+        var tmpname = url.deletingPathExtension().lastPathComponent
+        let appendit = ".json"
+        tmpname.append(appendit)
+
+        self.shareUrl = URL(fileURLWithPath: NSTemporaryDirectory() + tmpname)
+        super.init(placeholderItem: shareUrl)
     }
     
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+    override var item: Any {
+        get {
+            guard let  d = FileManager.default.contents(atPath: self.url.path) else {
+                trc(level: .error, string: "EdmFlightDetailsShared.item: no data found at \(url.path)")
+                return shareUrl
+            }
+
+            trc(level: .info, string: "EdmFileDetailsJSON: read \(self.url.path)")
+
+            guard let e = EdmFileDetails(data: d) else {
+                trc(level: .error, string: "EdmFlightDetailsShared.item: invalid file \(self.url.path)")
+                return shareUrl
+            }
+            let encoder = JSONEncoder()
+            let formatter = DateFormatter()
+
+            formatter.dateStyle = .short
+            formatter.timeStyle = .medium
+            encoder.dateEncodingStrategy = .formatted(formatter)
+            encoder.outputFormatting = .prettyPrinted
+
+            do {
+                let data = try encoder.encode(e.p.edmFileData)
+                try data.write(to: shareUrl)
+            } catch {
+                trc(level: .error, string: "EdmFlightDetailsShared.item: encoding error \(error)")
+            }
+            
+            return shareUrl
+        }
     }
 }
 

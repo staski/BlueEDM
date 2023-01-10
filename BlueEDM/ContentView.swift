@@ -345,16 +345,14 @@ struct SettingsView : View {
 
 struct ActivityViewController : UIViewControllerRepresentable {
 
-    var url : URL
-
-    @EnvironmentObject var edm : EDMBluetoothManager
+    var shareItem : Any
 
     let applicationActivities: [UIActivity]? = nil
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         
         let controller = UIActivityViewController(
-            activityItems: [url],
+            activityItems: [shareItem],
             applicationActivities: nil)
         
         return controller

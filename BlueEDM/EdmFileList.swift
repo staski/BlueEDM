@@ -19,12 +19,6 @@ struct EdmFile : Identifiable {
 extension EdmFlightHeader : Identifiable {
 }
 
-extension String : Identifiable {
-    public var id: Int {
-        return 0
-    }
-}
-
 struct NavigationLazyView<Content: View>: View {
     let build: () -> Content
     init(_ build: @autoclosure @escaping () -> Content) {
@@ -48,17 +42,35 @@ struct EdmErrorView : View {
 
 struct FileListView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
-
+    @State private var showSharing : Bool = false
+    
     var body: some View {
+        var shareUrl : URL? = nil
+        
         NavigationView {
             if #available(iOS 15.0, *) {
-                List(edm.edmFiles) { file in
-                    NavigationLink(file.fileURL.lastPathComponent, destination: NavigationLazyView(FileView(file.fileURL))).swipeActions(allowsFullSwipe: false) {
-                        Button(role: .destructive) {
+                List {
+                    ForEach (edm.edmFiles) { file in
+                        NavigationLink{ NavigationLazyView(FileView(file.fileURL)) } label: {
+                            Text(file.fileURL.lastPathComponent)
+                        }.swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button{
+                                shareUrl = file.fileURL
+                                showSharing.toggle()
+                            } label: {
+                                Label("Share", systemImage: "square.and.arrow.up.fill")
+                            }.tint(.blue)
+                        }.swipeActions(allowsFullSwipe: false) {
+                            Button(role: .destructive) {
                             edm.deleteFile(file.fileURL)
                             edm.fetchEdmFiles()
                         } label: {
                             Label("Delete \(file.fileURL.path)", systemImage: "trash.fill")
+                            }
+                        }.sheet(isPresented: $showSharing) {
+                            if shareUrl != nil {
+                                ActivityViewController(shareItem: EdmFileDetailsJSON(url: shareUrl!))
+                            }
                         }
                     }
                 }.navigationTitle("EDM Files")
@@ -231,7 +243,8 @@ struct FileView : View {
                                             Label("Share", systemImage: "square.and.arrow.up.fill")
                                         }
                                     }.tint(.blue).sheet(isPresented: $showSharing) {
-                                        SharedDetailActivityController(e: EdmFlightDetailsJSON(url: fileurl, id: Int(flight.id)))
+                                        ActivityViewController(shareItem: EdmFlightDetailsJSON(url: fileurl, id: Int(flight.id)))
+                                        //SharedDetailActivityController(e: EdmFlightDetailsJSON(url: fileurl, id: Int(flight.id)))
                                     }
                                 } else {
                                     NavigationLink {
@@ -245,7 +258,7 @@ struct FileView : View {
                     }.navigationBarItems(trailing: Button(action: { shareItem.toggle()}){
                             Image(systemName: "square.and.arrow.up").imageScale(.large)
                         }.sheet(isPresented: $shareItem, content: {
-                            ActivityViewController(url: fileurl)
+                            ActivityViewController(shareItem: fileurl)
                         })).navigationBarTitle("JPI File").navigationBarTitleDisplayMode(.inline)
                     }
             }

@@ -475,6 +475,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
         
+        headerDataText.append("\n")
         for i in nextIndex..<header.flightInfos.count
         {
             
@@ -521,6 +522,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         edmFileParser.edmFileData.edmFileHeader = h
         
         trc(level: .info, string: "Init FileView: \(h!.flightInfos.count)")
+        headerDataText.append("\n")
 
         for i in 0..<c
         {
