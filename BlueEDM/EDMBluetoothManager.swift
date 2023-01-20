@@ -335,8 +335,8 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             //readCmd()
             //sendCmd("3")
         case .BlueEdmDeviceDsdhm18:
+            sendCmd("AT+BAUD4")
             sendCmd("AT+BAUD?")
-            sendCmd("AT+POWE?")
         default:
             print ("initDevice: no device available, ignore")
         }
@@ -457,7 +457,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
 
         if edmFileParser.edmFileData.edmFileHeader == nil {
             if edmFileParser.available > 2000 {
-
+                
                 guard let header = edmFileParser.parseFileHeaders() else {
                     if !edmFileParser.invalid {
                         headerDataText.append("received invalid data\n")
@@ -468,6 +468,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
                 edmFileParser.edmFileData.edmFileHeader = header
                 nextIndex = 0
                 headerDataText.append(header.stringValue(includeFlights: false))
+                headerDataText.append("\n")
             }
         }
         
@@ -475,7 +476,6 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
             return
         }
         
-        headerDataText.append("\n")
         for i in nextIndex..<header.flightInfos.count
         {
             
