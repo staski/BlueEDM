@@ -155,7 +155,7 @@ struct FileView : View {
         }
 
         p.edmFileData.edmFileHeader = h
-        trc(level: .error, string: "Init FileView: \(h!.flightInfos.count)")
+        trc(level: .info, string: "Init FileView: \(h!.flightInfos.count)")
 
         for i in 0..<c
         {
