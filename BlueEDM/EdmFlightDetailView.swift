@@ -229,9 +229,9 @@ enum EdmFlightPeakValue {
             case .FF:
                 return "maximum fuel flow"
             case .CLD:
-                return "maximum cooling"
+                return "maximum cooling rate"
             case .DIFF:
-                return "maximum difference"
+                return "maximum EGT spread"
             case .OIL:
                 return "oil temperature"
             }
@@ -440,14 +440,22 @@ struct EdmFlightDetailView: View {
 
     var body: some View {
         let d = details!
-        let ffunit = d.fd.flightHeader?.ff.getUnit()
-        let ffused_string = String(format: "%6.1f %@", d.fd.getFuelUsed(outFuelUnit: ffunit), ffunit?.volumename ?? "")
-
+        let fd = d.fd
+        let ffunit : FuelFlowUnit?
+        var ffused_string : String = ""
+        
+        if fd.hasfeature(.ff){
+            ffunit = fd.flightHeader?.ff.getUnit()
+            ffused_string = String(format: "%6.1f %@", fd.getFuelUsed(outFuelUnit: ffunit), ffunit?.volumename ?? "")
+        }
+        
         let l = VStack {
             List {
                 Section (header: EdmFlightDetailViewItem(name: "Flight id: " + String(id), value: datestring)){
                     EdmFlightDetailViewItem(name: "Duration", value: durationstring)
-                    EdmFlightDetailViewItem(name: "Fuel used", value: ffused_string)
+                    if fd.hasfeature(.ff){
+                        EdmFlightDetailViewItem(name: "Fuel used", value: ffused_string)
+                    }
                 }
                 Section(header: Text("Peak Values")){
                     HStack {
@@ -456,14 +464,18 @@ struct EdmFlightDetailView: View {
                         EdmFlighPeakValueView(peakValue: .EGT, edmFlightDetail: d)
                     }
                     HStack {
-                        EdmFlighPeakValueView(peakValue: .OIL, edmFlightDetail: d)
-                        Spacer()
+                        if fd.hasfeature(.oil) {
+                            EdmFlighPeakValueView(peakValue: .OIL, edmFlightDetail: d)
+                            Spacer()
+                        }
                         EdmFlighPeakValueView(peakValue: .DIFF, edmFlightDetail: d)
                     }
                 }
                 Section(header: Text("Warnings")){
                     EdmFlightAlarmView(p: .CHT, d: d)
-                    EdmFlightAlarmView(p: .OIL, d: d)
+                    if fd.hasfeature(.oil){
+                        EdmFlightAlarmView(p: .OIL, d: d)
+                    }
                     EdmFlightAlarmView(p: .DIFF, d: d)
                 }
             }

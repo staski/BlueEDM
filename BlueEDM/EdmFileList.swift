@@ -125,6 +125,7 @@ extension Date {
     }
 }
 
+
 struct FileView : View {
     @State private var shareItem = false
     
@@ -205,6 +206,9 @@ struct FileView : View {
     @State private var topExpanded: Bool = false
     @State private var showSharing: Bool = false
     var body: some View {
+            var shareUrl : URL? = nil
+            var shareId : Int? = nil
+            
             if h == nil {
                 EdmErrorView(text: "INVALID JPI FILE")
             } else {
@@ -238,13 +242,16 @@ struct FileView : View {
                                         EdmFileListItem(name: "ID " + String(flight.id), value: flight.date?.toString() ?? "")
                                     }.swipeActions(edge: .leading, allowsFullSwipe: false) {
                                         Button(action:  {
+                                            shareUrl = fileurl
+                                            shareId = Int(flight.id)
                                             showSharing.toggle()
                                         }){
                                             Label("Share", systemImage: "square.and.arrow.up.fill")
                                         }
                                     }.tint(.blue).sheet(isPresented: $showSharing) {
-                                        ActivityViewController(shareItem: EdmFlightDetailsJSON(url: fileurl, id: Int(flight.id)))
-                                        //SharedDetailActivityController(e: EdmFlightDetailsJSON(url: fileurl, id: Int(flight.id)))
+                                        if shareUrl != nil && shareId != nil {
+                                            ActivityViewController(shareItem: EdmFlightDetailsJSON(url: shareUrl!, id: shareId!))
+                                        }
                                     }
                                 } else {
                                     NavigationLink {
