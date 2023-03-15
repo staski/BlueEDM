@@ -100,7 +100,7 @@ class EdmFlightDetails : NSObject {
             return nil
         }
         
-        return kind.getPeak(for: self)?() // possibly nil
+        return kind.getPeak(for: self.fd)?() // possibly nil
     }
     
     func getPeakString(_ idx: Int, for val: Int) -> (String, String)? {
@@ -218,302 +218,6 @@ class EdmFlightDetailsJSON : UIActivityItemProvider {
 
 typealias EdmFlightDetailViewItem = EdmFileListItem
 
-enum EdmParamDimensionEnum {
-    case VOLUME // volume (liters)
-    case TEMP // temperature (°C)
-    case FLOW // flow (gallons / h)
-    case PRESS // pressure (inHg)
-    case VOLT // voltage (volts)
-    case FREQ // frequency (rpm)
-}
-
-enum EdmParamUnitEnum {
-    case liters
-    case gallons
-    case lbs
-    case kg
-    case celsius
-    case fahrenheit
-    case lph
-    case gph
-    case lbsph
-    case kgph
-    case inhg
-    case volt
-    case rpm
-    
-    public var shortname : String {
-        get {
-            switch self {
-            case .liters:
-                return "l"
-            case .gallons:
-                return "G"
-            case .lbs:
-                return "LBS"
-            case .kg:
-                return "KG"
-            case .celsius:
-                return "°C"
-            case .fahrenheit:
-                return "°F"
-            case .lph:
-                return "l/h"
-            case .gph:
-                return "g/h"
-            case .lbsph:
-                return "lbs/h"
-            case .kgph:
-                return "kg/h"
-            case .inhg:
-                return "\"Hg"
-            case .volt:
-                return "V"
-            case .rpm:
-                return "RPM"
-            }
-        }
-    }
-    
-    public var name: String {
-        get { return String(describing: self) }
-    }
-    
-    public var scale : Int {
-        get {
-            switch self {
-            case .gallons, .gph, .volt, .inhg:
-                return 10
-            default:
-                return 1
-            }
-        }
-    }
-    
-    public var dimension : EdmParamDimensionEnum {
-        get {
-            switch self {
-            case .gallons, .liters,.kg, .lbs:
-                return .VOLUME
-            case .volt:
-                return .VOLT
-            case .inhg:
-                return .PRESS
-            case .gph, .lph, .kgph, .lbsph:
-                return .FLOW
-            case .rpm:
-                return .FREQ
-            case .fahrenheit, .celsius:
-                return .TEMP
-            }
-        }
-    }
-}
-
-struct EdmUnits {
-    var volume_unit : EdmParamUnitEnum = .liters
-    var temp_unit : EdmParamUnitEnum = .fahrenheit
-    var flow_unit : EdmParamUnitEnum = .lph
-    var press_unit : EdmParamUnitEnum = .inhg
-    var volt_unit : EdmParamUnitEnum = .volt
-    var freq_unit : EdmParamUnitEnum = .rpm
-}
-
-enum EdmFlightPeakValue : CaseIterable {
-    case CHT
-    case EGT
-    case FF
-    case CLD
-    case DIFF
-    case OILLOW
-    case OILHI
-    case BATLOW
-    case BATHI
-    case RPM
-    case MAP
-    case IAT
-    case OATHI
-    case OATLO
-    
-    public var name: String {
-        get { return String(describing: self) }
-    }
-    
-    public var longname : String {
-        get {
-            switch self {
-            case .CHT:
-                return "max CHT"
-            case .EGT:
-                return "max EGT"
-            case .FF:
-                return "max FF"
-            case .CLD:
-                return "max cooling"
-            case .DIFF:
-                return "max DIF"
-            case .OILLOW:
-                return "min OIL"
-            case .OILHI:
-                return "max OIL"
-            case .BATLOW:
-                return "min BAT"
-            case .BATHI:
-                return "max BAT"
-            case .RPM:
-                return "max RPM"
-            case .MAP:
-                return "max MAP"
-            case .IAT:
-                return "max IAT"
-            case .OATLO:
-                return "min OAT"
-            case .OATHI:
-                return "max OAT"
-            }
-        }
-    }
-
-    public var aboveOrBelow : String {
-        get {
-            switch self {
-            case .OILLOW, .BATLOW, .CLD:
-                return "below"
-            default:
-                return "above"
-            }
-        }
-    }
-        
-    public var feature : EdmFeatures {
-        get {
-            switch self {
-            case .CHT:
-                return .c[0] // cylinders always present
-            case .EGT:
-                return .e[0] // EGT always present
-            case .FF:
-                return .ff
-            case .CLD:
-                return .cld
-            case .DIFF:
-                return .e[0] // if EGT is present, DIFF is present
-            case .OILLOW:
-                return .oil
-            case .OILHI:
-                return .oil
-            case .BATLOW:
-                return .battery
-            case .BATHI:
-                return .battery
-            case .RPM:
-                return .rpm
-            case .MAP:
-                return .map
-            case .IAT:
-                return .iat
-            case .OATLO:
-                return .oat
-            case .OATHI:
-                return .oat
-            }
-        }
-    }
-    
-    public var dimension : EdmParamDimensionEnum {
-        get {
-            switch self {
-            case .CHT, .EGT, .CLD, .DIFF, .OILLOW, .OILHI, .OATLO, .OATHI, .IAT:
-                return .TEMP
-            case .FF:
-                return .FLOW
-            case .BATLOW, .BATHI:
-                return .VOLT
-            case .MAP:
-                return .PRESS
-            case .RPM:
-                return .FREQ
-            }
-        }
-    }
-    
-    public func unit(for flight: EdmFlightDetails) -> EdmParamUnitEnum {
-        switch self.dimension {
-        case .TEMP:
-            return flight.units.temp_unit
-        case .FREQ:
-            return flight.units.freq_unit
-        case .FLOW:
-            return flight.units.flow_unit
-        case .PRESS:
-            return flight.units.press_unit
-        case .VOLT:
-            return flight.units.volt_unit
-        case .VOLUME:
-            return flight.units.volume_unit
-        }
-    }
-    
-    public func getThresholdFor(header: EdmFlightHeader) -> Int? {
-        switch self {
-        case .CHT:
-            return header.alarmLimits.cht
-        case .CLD:
-            return header.alarmLimits.cld
-        case .DIFF:
-            return header.alarmLimits.diff
-        case .OILLOW:
-            return header.alarmLimits.oilLow
-        case .OILHI:
-            return header.alarmLimits.oilHi
-        case .BATLOW:
-            return header.alarmLimits.voltsLow
-        case .BATHI:
-            return header.alarmLimits.voltsHi
-        default:
-                return nil
-        }
-    }
-    
-    public func getPeak(for edmFlightDetails : EdmFlightDetails) -> (() -> (Int, Int))? {
-        switch self {
-        case .CHT:
-            return edmFlightDetails.fd.getMaxCht
-        case .EGT:
-            return edmFlightDetails.fd.getMaxEgt
-        case .OILHI:
-            return edmFlightDetails.fd.getMaxOil
-        case .DIFF:
-            return edmFlightDetails.fd.getMaxDiff
-        case .CLD:
-            return edmFlightDetails.fd.getMaxCld
-        case .MAP:
-            return edmFlightDetails.fd.getMaxMap
-        default:
-            return nil
-        }
-    }
-    
-    public func getWarnIntervalls(for edmFlightDetails : EdmFlightDetails) -> (() -> [(Int, Int, Int)]?) {
-        switch self {
-        case .CHT:
-            return edmFlightDetails.fd.getChtWarnIntervals
-        case .EGT:
-            return edmFlightDetails.fd.getChtWarnIntervals
-        case .OILLOW:
-            return edmFlightDetails.fd.getOilLowIntervals
-        case .OILHI:
-            return edmFlightDetails.fd.getOilHighIntervals
-        case .DIFF:
-            return edmFlightDetails.fd.getDiffWarnIntervals
-        case .CLD:
-            return edmFlightDetails.fd.getColdWarnIntervals
-        default:
-            return edmFlightDetails.fd.getColdWarnIntervals
-        }
-    }
-}
-
 extension Int {
     func exceeds(limit value: EdmFlightPeakValue, for header: EdmFlightHeader) -> Bool? {
         guard let val = value.getThresholdFor(header: header) else {
@@ -540,7 +244,7 @@ struct EdmFlightPeakValueView : View {
         let c : Color
         if let (idx, val) = edmFlightDetail.getPeak(peakValue),
             let (timeString, valueString) = edmFlightDetail.getPeakString(idx, for: val) {
-            let s = peakValue.unit(for: edmFlightDetail).scale
+            let s = peakValue.unit(for: edmFlightDetail.h).scale
             if s != 1 {
                 value_s = String(format: "%4.1f", Double(val)/(Double(s)))
             } else {
@@ -575,7 +279,7 @@ struct EdmFlightPeakValueView : View {
             VStack(alignment: .leading) {
                 Text(titleString)
                 if let (valueString, timeString, c) = self.getPeakValueString() {
-                    Text(valueString + " " + peakValue.unit(for: edmFlightDetail).shortname).font(.system(size: 24, weight: .bold)).foregroundColor(c)
+                    Text(valueString + " " + peakValue.unit(for: edmFlightDetail.h).shortname).font(.system(size: 24, weight: .bold)).foregroundColor(c)
                     Text("after " + timeString).font(.caption)
                 }
                  else {
@@ -600,7 +304,7 @@ struct EdmFlightAlarm {
         peakValue = p
         edmFlightDetail = d
         
-        guard let a = p.getWarnIntervalls(for: d)() else {
+        guard let a = p.getWarnIntervalls(for: d.fd)() else {
             return nil
         }
         
@@ -628,7 +332,7 @@ struct EdmFlightAlarmView : View {
             return
         }
 
-        titleString = "\(peakValue.longname) \(peakValue.aboveOrBelow) \(alarms!.alarmValue) \(peakValue.unit(for: edmFlightDetail).shortname)"
+        titleString = "\(peakValue.longname) \(peakValue.aboveOrBelow) \(alarms!.alarmValue) \(peakValue.unit(for: edmFlightDetail.h).shortname)"
     }
     
     var body: some View {
@@ -706,13 +410,13 @@ struct EdmFlightDetailView: View {
         var availablePeakValues : [EdmFlightPeakValue] = []
 
         availablePeakValues = EdmFlightPeakValue.allCases.reduce(into: availablePeakValues, { (res, elem) in
-            if elem.getPeak(for: d) != nil && d.fd.hasfeature(elem.feature) {
+            if elem.getPeak(for: d.fd) != nil && d.fd.hasfeature(elem.feature) {
                 res.append(elem)
             }
         })
 
         if fd.hasfeature(.ff){
-            ffused_string = String(format : "%6.1f %@", fd.getFuelUsed(outFuelUnit: nil), d.units.volume_unit.name)
+            ffused_string = String(format : "%6.1f %@", fd.getFuelUsed(outFuelUnit: nil), d.h.units.volume_unit.name)
         }
         
        let l = List {
