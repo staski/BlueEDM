@@ -8,216 +8,10 @@
 import SwiftUI
 import EdmParser
 
-extension TimeInterval {
-    public func hm () -> String {
-        var m = Int(self / 60.0)
-        let h = Int(Double(m) / 60.0)
-        m = m - h * 60
-    
-        return h != 0 ? String(format: "%dh %2.2dm", h ,m) : String(format: "%d m", m)
-    }
-}
-
-class EdmFileDetails : NSObject {
-    var p : EdmFileParser
-    
-    init?(data: Data) {
-        p = EdmFileParser(data: data)
-        guard let header = p.parseFileHeaders() else {
-            trc(level: .warn, string: "EdmFlightDetails init: error parsing file header")
-            return nil
-        }
-        
-        p.edmFileData.edmFileHeader = header
-
-        for i in 0..<header.flightInfos.count
-        {
-            if p.complete == true {
-                trc(level: .error, string: "EdmFlightDetails init: complete before parsing flight \(i)")
-                return nil
-            }
-            if p.invalid == true {
-                trc(level: .error, string: "EdmFlightDetails init: error parsing flight \(i)")
-                return nil
-            }
-            
-            let id = header.flightInfos[i].id
-            p.parseFlightHeaderAndBody(for: id)
-        }
-    }
-}
-
-class EdmFlightDetails : NSObject {
-    var p : EdmFileParser
-    var h : EdmFileHeader
-    var fh : [EdmFlightHeader]
-    var fd : EdmFlightData
-    var units : EdmUnits = EdmUnits()
-    
-    init?(data: Data, id: Int) {
-        p = EdmFileParser(data: data)
-        guard let header = p.parseFileHeaders() else {
-            trc(level: .warn, string: "EdmFlightDetails init: error parsing file header")
-            return nil
-        }
-        h = header
-        fh = [EdmFlightHeader]() // to be used when implemented in EdmFileList
-        
-        p.edmFileData.edmFileHeader = h
-        p.parseFlightHeaderAndBody(for: id)
-        if p.invalid == true {
-            trc(level: .error, string: "EdmFlightDetailView(\(data),\(id)): parser invalid state")
-            return nil
-        }
-        
-        // todo: preallocate edmFlightData in the right size and insert at the correct position
-        // (such that edmFileHeader.idx(for flightId) gives the correct index)
-        fd = p.edmFileData.edmFlightData[0]
-        
-        // units has the correct default for all other dimensions
-        switch  h.ff.getUnit() {
-        case .GPH:
-            units.flow_unit = .gph
-            units.volume_unit = .gallons
-        case .KPH:
-            units.flow_unit = .kgph
-            units.volume_unit = .kg
-        case .PPH:
-            units.flow_unit = .lbsph
-            units.volume_unit = .lbs
-        case .LPH:
-            units.flow_unit = .lph
-            units.volume_unit = .liters
-        }
-        
-        if h.config.temperatureUnit == .celsius {
-            units.temp_unit = .celsius
-        }
-    }
-    
-    func getPeak(_ kind: EdmFlightPeakValue) -> (Int, Int)? {
-        if !self.fd.hasfeature(kind.feature){
-            return nil
-        }
-        
-        return kind.getPeak(for: self.fd)?() // possibly nil
-    }
-    
-    func getPeakString(_ idx: Int, for val: Int) -> (String, String)? {
-        guard let dt = self.fd.flightDataBody[idx].date else {
-            trc(level: .error, string: "getMaxString: no date for idx \(idx)")
-            return nil
-        }
-        
-        guard let dt2 = self.fd.flightHeader?.date else {
-            trc(level: .error, string: "getMaxString: no date in header")
-            return nil
-        }
-        
-        let d = dt.timeIntervalSince(dt2)
-        return (d.hm(), String(val))
-    }
-}
-    
-class EdmFileDetailsJSON : UIActivityItemProvider {
-    let url : URL
-    let shareUrl : URL
-    
-    init(url: URL){
-        self.url  = url
-        var tmpname = url.deletingPathExtension().lastPathComponent
-        let appendit = ".json"
-        tmpname.append(appendit)
-
-        self.shareUrl = URL(fileURLWithPath: NSTemporaryDirectory() + tmpname)
-        super.init(placeholderItem: shareUrl)
-    }
-    
-    override var item: Any {
-        get {
-            guard let  d = FileManager.default.contents(atPath: self.url.path) else {
-                trc(level: .error, string: "EdmFlightDetailsShared.item: no data found at \(url.path)")
-                return shareUrl
-            }
-
-            trc(level: .info, string: "EdmFileDetailsJSON: read \(self.url.path)")
-
-            guard let e = EdmFileDetails(data: d) else {
-                trc(level: .error, string: "EdmFlightDetailsShared.item: invalid file \(self.url.path)")
-                return shareUrl
-            }
-            let encoder = JSONEncoder()
-            let formatter = DateFormatter()
-
-            formatter.dateStyle = .short
-            formatter.timeStyle = .medium
-            encoder.dateEncodingStrategy = .formatted(formatter)
-            encoder.outputFormatting = .prettyPrinted
-
-            do {
-                let data = try encoder.encode(e.p.edmFileData)
-                try data.write(to: shareUrl)
-            } catch {
-                trc(level: .error, string: "EdmFlightDetailsShared.item: encoding error \(error)")
-            }
-            
-            return shareUrl
-        }
-    }
-}
-
-class EdmFlightDetailsJSON : UIActivityItemProvider {
-    let url : URL
-    let shareUrl : URL
-    let id : Int
-    
-    init(url: URL, id: Int){
-        self.url  = url
-        var tmpname = url.deletingPathExtension().lastPathComponent
-        let appendit = "_" + String(id) + ".json"
-        tmpname.append(appendit)
-
-        self.shareUrl = URL(fileURLWithPath: NSTemporaryDirectory() + tmpname)
-        self.id = id
-
-        trc(level: .info, string: "EdmFlightDetailsShare: temp is \(shareUrl.path)")
-        trc(level: .info, string: "EdmFlightDetailsShare: orig is \(url.path)")
-
-        super.init(placeholderItem: shareUrl)
-    }
-    
-    override var item: Any {
-        get {
-            guard let  d = FileManager.default.contents(atPath: url.path) else {
-                trc(level: .error, string: "EdmFlightDetailsShared.item: no data found at \(url.path)")
-                return shareUrl
-            }
-            guard let e = EdmFlightDetails(data: d, id: id) else {
-                trc(level: .error, string: "EdmFlightDetailsShared.item: invalid file \(url.path)")
-                return shareUrl
-            }
-            let encoder = JSONEncoder()
-            let formatter = DateFormatter()
-
-            formatter.dateStyle = .short
-            formatter.timeStyle = .medium
-            encoder.dateEncodingStrategy = .formatted(formatter)
-            encoder.outputFormatting = .prettyPrinted
-
-            do {
-                let data = try encoder.encode(e.fd)
-                try data.write(to: shareUrl)
-            } catch {
-                trc(level: .error, string: "EdmFlightDetailsShared.item: encoding error \(error)")
-            }
-            
-            return shareUrl
-        }
-    }
-}
 
 typealias EdmFlightDetailViewItem = EdmFileListItem
 
+// todo: move to EdmParser
 extension Int {
     func exceeds(limit value: EdmFlightPeakValue, for header: EdmFlightHeader) -> Bool? {
         guard let val = value.getThresholdFor(header: header) else {
@@ -291,31 +85,6 @@ struct EdmFlightPeakValueView : View {
     }
 }
 
-struct EdmFlightAlarm {
-    let peakValue : EdmFlightPeakValue
-    let edmFlightDetail : EdmFlightDetails
-    let alarmValues : [(Int,Int,Int)]
-    
-    var alarmValue : Int {
-        return alarmValues[0].2
-    }
-    
-    init?(p: EdmFlightPeakValue, d: EdmFlightDetails) {
-        peakValue = p
-        edmFlightDetail = d
-        
-        guard let a = p.getWarnIntervalls(for: d.fd)() else {
-            return nil
-        }
-        
-        if a.count == 0 {
-            return nil
-        }
-        
-        alarmValues = a
-    }
-}
-
 struct EdmFlightAlarmView : View {
     let peakValue : EdmFlightPeakValue
     let edmFlightDetail : EdmFlightDetails
@@ -345,7 +114,7 @@ struct EdmFlightAlarmView : View {
                     let dt2 = edmFlightDetail.fd.flightHeader?.date!
                     let dur = dt.timeIntervalSince(dt2!)
                     
-                    Text("after " + dur.hm() + " for " + String(duration) + " seconds").font(.caption)
+                    Text("after " + dur.hm() + " for " + TimeInterval(duration).durationrelative()).font(.caption)
                 }
             }
         }
@@ -381,28 +150,6 @@ struct EdmFlightDetailView: View {
         return
     }
     
-    func getWarnIntervals(param: String, getinterval: () -> [(Int, Int, Int)]?) -> [String] {
-        
-        let a = getinterval()?.map() { (idx, duration, value) -> String in
-            guard let d = details else {
-                return ""
-            }
-            
-            guard let dt = d.fd.flightDataBody[idx].date else {
-                return ""
-            }
-            
-            guard let dt2 = d.fd.flightHeader?.date else {
-                trc(level: .error, string: "no date in header")
-                return ""
-            }
-            
-            let dur = dt.timeIntervalSince(dt2)
-            return param + " above " + String(value) + "°F after " + dur.hm() + " for " + String(duration) + " seconds"
-        }
-        return a ?? ["INVALID"]
-    }
-
     var body: some View {
         let d = details!
         let fd = d.fd
@@ -434,16 +181,102 @@ struct EdmFlightDetailView: View {
                         }
                     }.padding(.vertical)
                 }
+                if (d.fd.hasnaflag){
+                    Section(header: Text("Failed Sensors")){
+                        EdmNAValuesView(d)
+                    }
+                }
                 Section(header: Text("Warnings")){
                     EdmFlightAlarmView(p: .CHT, d: d)
                     if fd.hasfeature(.oil){
-                        EdmFlightAlarmView(p: .OILLOW, d: d)
+                        EdmFlightAlarmView(p: .OILHI, d: d)
+                    }
+                    if fd.hasfeature(.cld){
+                        EdmFlightAlarmView(p: .CLD, d: d)
                     }
                     EdmFlightAlarmView(p: .DIFF, d: d)
                 }
             }
         return l
+    }
+}
+
+struct EdmNASingleNAValueView : View {
+    let sensor: String
+    let intervals: [String]
+    
+    var body: some View {
+        let v = VStack {
+            ForEach(intervals, id: \.self) { interval in
+                Text(interval).font(.caption)
+            }
+        }
+        return v
+    }
+}
+
+struct EdmNAValuesView: View {
+    let naintervals : EdmNAIntervals
+    var textarray : [String] = []
+    var details: EdmFlightDetails
+    
+    var allKeys : [String] {
+        return naintervals.keys.sorted()//.map { String($0) }
+    }
+    
+    func naintervalstrings(key: String) -> [String]? {
+        var intervalstrings : [String] = []
+        
+        guard let interval = naintervals[key] else {
+            return nil
+        }
+        
+        let d = details
+        
+        for i in 0 ..< interval.count / 2 {
+            guard let di1 = d.fd.flightDataBody[interval[2*i]].date else {
+                intervalstrings.append("invalid date for \(interval[2*i])")
+                continue
+            }
+            guard let header = d.fd.flightHeader else {
+                intervalstrings.append("no flight header")
+                continue
+            }
             
+            guard let ds = header.date else {
+                intervalstrings.append("no start date for flight")
+                continue
+            }
+
+            let start = di1.timeIntervalSince(ds)
+
+            guard let di2 = d.fd.flightDataBody[interval[2*i+1]].date else {
+                intervalstrings.append("invalid date for \(interval[2*i + 1])")
+                continue
+            }
+            
+            let duration = di2.timeIntervalSince(di1)
+            
+            intervalstrings.append("after \(start.hm()) for \(duration.durationrelative())")
+        }
+        
+        return intervalstrings
+        
+    }
+    
+    init (_ d: EdmFlightDetails){
+        details = d
+        naintervals = d.fd.getNAIntervals()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            ForEach(allKeys, id: \.self){ key in
+                Text("Sensor " + key + " not available").frame(maxWidth: .infinity, alignment: .center)
+                EdmNASingleNAValueView(sensor: key,
+                                       intervals: naintervalstrings(key: key) ?? [])
+            }
+        }
     }
 }
 

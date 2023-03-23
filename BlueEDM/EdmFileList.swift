@@ -29,16 +29,18 @@ struct NavigationLazyView<Content: View>: View {
     }
 }
 
-struct EdmErrorView : View {
-    var text : String
+struct EdmFileListItem: View {
+    let name : String
+    let value : String
     var body: some View {
-        VStack(alignment: .center){
-            HStack(alignment: .center){
-                Text(text).font(.system(size: 24, weight: .bold))
-            }
+        HStack {
+            Text(name)
+            Spacer()
+            Text(value)
         }
     }
 }
+
 
 struct FileListView : View {
     @EnvironmentObject var edm : EDMBluetoothManager
@@ -116,15 +118,17 @@ extension EdmFilename {
     }
 }
 
-extension Date {
-    func toString() -> String {
-        let df = DateFormatter()
-        df.dateStyle = .short
-        df.timeStyle = .short
-        return df.string(from: self)
+
+struct EdmErrorView : View {
+    var text : String
+    var body: some View {
+        VStack(alignment: .center){
+            HStack(alignment: .center){
+                Text(text).font(.system(size: 24, weight: .bold))
+            }
+        }
     }
 }
-
 
 struct FileView : View {
     @State private var shareItem = false
