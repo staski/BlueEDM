@@ -63,7 +63,7 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     @Published var shareItem = false
     @Published var headerDataText = ""
     @Published var isRawMode = false
-    
+    @Published var rcvCount = 0
     
     // the saved files 1:1
     @Published var edmFiles = [EdmFile]()
@@ -87,6 +87,7 @@ class EDMBluetoothManager : NSObject, ObservableObject{
     
     func startCapturing () {
         edmFileParser = EdmFileParser()
+        rcvCount = 0
         isCapturing = true
     }
     
@@ -449,6 +450,7 @@ extension EDMBluetoothManager : CBCentralManagerDelegate, CBPeripheralDelegate {
         }
         
         edmFileParser.data.append(data)
+        rcvCount += data.count
         
         if isRawMode == true {
             trc(level: .info, string: "peripheral::didUpdateValueFor: raw mode active, don't parse EDM data")

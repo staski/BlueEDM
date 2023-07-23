@@ -32,6 +32,11 @@ class EdmFileDetails : NSObject {
             }
             
             let id = header.flightInfos[i].id
+            
+            if header.flightInfos[i].sizeBytes == 0 {
+                trc(level: .error, string: "EdmFileDetails(): flight id \(header.flightInfos[i].id) without content")
+                continue
+            }
             p.parseFlightHeaderAndBody(for: id)
         }
     }

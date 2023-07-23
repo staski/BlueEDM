@@ -172,6 +172,11 @@ struct FileView : View {
             let id = h!.flightInfos[i].id
             trc(level: .error, string: "Init FileView: \(id)")
 
+            if h!.flightInfos[i].sizeBytes == 0 {
+                trc(level: .error, string: "FileView::init: flightId \(h!.flightInfos[i].id) has no content")
+                continue
+            }
+            
             guard let flightheader = p.parseFlightHeaderAndSkip(for: id) else {
                 fh = [EdmFlightHeader]()
                 h = nil

@@ -153,7 +153,7 @@ struct RecordingView : View {
             return 0.0
         }
         if let h = edm.edmFileParser.edmFileData.edmFileHeader {
-            let d = Double(edm.edmFileParser.data.count) / Double(h.totalLen)
+            let d = Double(edm.rcvCount) / Double(h.totalLen)
             return d < 1.0 ? d : 1.0
         }
         else {
