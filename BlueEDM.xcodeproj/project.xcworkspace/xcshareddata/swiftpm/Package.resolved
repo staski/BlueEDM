@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "edmparser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/staski/EdmParser.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "cb0c4b795874fbf28f4a5267ef260b839ef81671"
+      }
+    }
+  ],
+  "version" : 2
+}
